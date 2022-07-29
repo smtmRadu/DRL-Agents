@@ -9,6 +9,7 @@ public class NeuralNetwork
     protected float[][] neurons;
     protected float[][][] weights;
     protected float fitness;
+    private float bias = 0;
     public NeuralNetwork(int[] layers)
     {
         InitializeLayers(layers);
@@ -91,7 +92,7 @@ public class NeuralNetwork
         {
             for (int n = 0; n < neurons[l].Length; n++)
             {
-                float value = .25f;
+                float value = bias;
                 for (int p = 0; p < neurons[l-1].Length; p++)
                 {
                     value += weights[l - 1][n][p] * neurons[l - 1][p];
@@ -108,17 +109,9 @@ public class NeuralNetwork
     public void MutateWeights()
     {
         for (int i = 0; i < weights.Length; i++)
-        {
             for (int j = 0; j < weights[i].Length; j++)
-            {
                 for (int k = 0; k < weights[i][j].Length; k++)
-                {
-                    float weight = weights[i][j][k];
-                    MutateWeight(ref weight);
-                    weights[i][j][k] = weight;
-                }
-            }
-        }
+                    MutateWeight(ref weights[i][j][k]);
     }
 
     public int CompareTo(NeuralNetwork other)
@@ -149,7 +142,7 @@ public class NeuralNetwork
     protected void SetInputs(float[] inputs)
     {
         if (inputs.Length != neurons[0].Length)
-            Debug.Log("The number of inputs are not equal to input neurons, some of the inputs might be ignored");
+            Debug.Log("The number of inputs received is " + inputs.Length + " and the number of input neurons is " + neurons[0].Length + ". Expect some inputs to be ignored!");
 
         for (int i = 0; i < neurons[0].Length; i++)
         {
