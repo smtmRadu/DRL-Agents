@@ -32,4 +32,7 @@ public class Trainer : TrainerAgent
         base.ResetEpisode();
         PushWall.transform.position = pushWallStartingPos;
     }
+
+
+
 }

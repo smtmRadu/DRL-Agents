@@ -13,7 +13,7 @@ public class Agent : MonoBehaviour
     [SerializeField, Range(1,15), Tooltip("The number of Inputs that the Agent will receive (-1,1)")] private int spaceSize = 1;
     [SerializeField, Range(1, 15), Tooltip("The number of Outputs that the Agent will return (-1,1)")] private int actionSize = 1;
     [SerializeField, Range(1, 15), Tooltip("The number of Hidden Layers, the neurons for each layer is spaceSize+actionSize")] private int deep = 1;
-    protected NeuralNetwork network = null;
+    public NeuralNetwork network = null;
     
     public bool createNeuralNetwork = false;
     public bool clearAndMakeANewNeuralNetwork = false;
@@ -29,9 +29,7 @@ public class Agent : MonoBehaviour
     {
         UpdateLayersFormat();
         if (path!=null && path != "")
-        {
             SetNetworkFromFile(path, ref this.network);
-        }
     }
     //---------------------BASE FUNCTIONS------------------//
     protected virtual void Update()
@@ -67,7 +65,8 @@ public class Agent : MonoBehaviour
     //-----------------------FUNCTIONS-------------------//
     public void CreateNeuralNetwork(bool needTxtFile,int[] format, string[] copyOfBrain = null)
     {
-        if(needTxtFile)
+
+        if (needTxtFile)
         CreateTextFileForNN();
 
         if (copyOfBrain == null)
@@ -99,17 +98,7 @@ public class Agent : MonoBehaviour
                  {
                  }
             }
-            //Eroare de copiere in SetNetworkFromFile
              SetNetworkFromFile(path, ref this.network);
-            return;
-           
-            File.Copy(path, "Assets/StreamingAssets/Best_Neural_Network/TestFile.txt", true);
-            foreach (var line in copyOfBrain)
-            {
-                File.AppendAllText("Assets/StreamingAssets/Best_Neural_Network/TestFile.txt", line + "\n");
-
-            }
-
         }
          
         
@@ -123,8 +112,7 @@ public class Agent : MonoBehaviour
     /// <param name="network"> the network of the agent you want to set ( usually this.network)</param>
     public void SetNetworkFromFile(string path, ref NeuralNetwork network)
     {
-
-        if(new FileInfo(path).Length == 0)
+        if (new FileInfo(path).Length == 0)
         {
             Debug.Log("The Neural Network at the path " + path + " was empty, but we initialized a new Neural Network in it!");
             CreateNeuralNetwork(false, layersFormat);
@@ -329,11 +317,13 @@ public class Agent : MonoBehaviour
             return null;
         }
         else
-            return network.FeedForward(inputs);
+            return network.ForwardPropagation(inputs);
     }
-    protected virtual void OnOutputsReceived(float[] ActionBuffer) // Inference ONLY
+    protected virtual bool OnOutputsReceived(float[] ActionBuffer) // Inference ONLY
     {
-
+        if (this.behaviour != BehaviourType.Learning)
+            return false;
+        return true;
     }
     protected void AddReward(float reward)
     {
@@ -360,15 +350,18 @@ public class Agent : MonoBehaviour
     //----------------------External use functions---------------//
     public void MutateHisBrain()
     {
+       
         if (network != null)
+        {
             network.MutateWeights();
+            UpdateTextFile();
+        }
         else
             Debug.Log("Cannot Mutate a Brainless Agent");
     }
     protected void EndEpisode()
     {
         UpdateTextFile();
-        //Disable the script of the AI
         behaviour = BehaviourType.Static;
     }
     protected virtual void OnDestroy()

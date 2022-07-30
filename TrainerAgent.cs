@@ -70,7 +70,7 @@ public class TrainerAgent: MonoBehaviour
             Debug.Log("The training cannot start! Reason: No AI Model uploaded");
             return;
         }
-        if(AIModel.GetComponent<PlayerController>() == null)
+        if(AIModel.GetComponent<AIController>() == null)
         {
             canTrain = false;
             Debug.Log("The training cannot start! Reason: No Brain Model uploaded");
@@ -101,9 +101,9 @@ public class TrainerAgent: MonoBehaviour
         }
         foreach (GameObject member in team)
         {
-            PlayerController memberScript = member.GetComponent<PlayerController>();
-            memberScript.behaviour = BehaviourType.Learning;
+            AIController memberScript = member.GetComponent<AIController>();
             memberScript.CreateNeuralNetwork(true, memberScript.GetLayersFormat(), brainModelContents);
+            memberScript.behaviour = BehaviourType.Learning;
             member.transform.position = startingPos;
         }
         bestFitness = float.Parse(brainModelContents[brainModelContents.Length - 1]);
@@ -142,7 +142,7 @@ public class TrainerAgent: MonoBehaviour
         UpdateBestBrain();
         foreach (var member in team)
         {
-            PlayerController script = member.GetComponent<PlayerController>();
+            AIController script = member.GetComponent<AIController>();
             script.behaviour = BehaviourType.Static;
             File.Delete(script.path);
         }
@@ -159,7 +159,7 @@ public class TrainerAgent: MonoBehaviour
         {
             try
             {
-                if (member.GetComponent<PlayerController>().behaviour == BehaviourType.Learning)
+                if (member.GetComponent<AIController>().behaviour == BehaviourType.Learning)
                     return false;
             }
             catch { }
@@ -176,13 +176,12 @@ public class TrainerAgent: MonoBehaviour
         foreach (var member in team)
         {
             member.transform.position = startingPos;
-            member.GetComponent<PlayerController>().behaviour = BehaviourType.Learning;
+            member.GetComponent<AIController>().behaviour = BehaviourType.Learning;
         }
         
         environmentCanGo = true;
         //---Environment Reset must be overridden
     }
-
     private void UpdateBestBrain()
     {
         //Find Best AI and it's fitness
@@ -190,7 +189,7 @@ public class TrainerAgent: MonoBehaviour
         int bestAiIndex = -1;
         for (int i = 0; i < team.Count; i++)
         {
-            float fit = team[i].GetComponent<PlayerController>().currentNNFitness;
+            float fit = team[i].GetComponent<AIController>().currentNNFitness;
            
             if (fit > bestFitInThisGen)
             {
@@ -209,24 +208,17 @@ public class TrainerAgent: MonoBehaviour
             //-----COPY THIS STEP BRAIN TO BEST BRAIN
             try
             {
-                 File.Copy(team[bestAiIndex].GetComponent<PlayerController>().GetCurrentNetworkPath(), bestBrainModel, true);
+                 File.Copy(team[bestAiIndex].GetComponent<AIController>().GetCurrentNetworkPath(), bestBrainModel, true);
             } catch { Debug.Log("Couldn't Update best brain"); }  
         }
 
         //------COPY BEST BRAIN IN ALL AI's BRAINS
         foreach (GameObject ai in team)
         {
-            PlayerController script = ai.GetComponent<PlayerController>();
+            AIController script = ai.GetComponent<AIController>();
             script.CopyNetworkFrom(bestBrainModel);
+            script.SetNetworkFromFile(script.path, ref script.network);
             script.MutateHisBrain();
-            script.UpdateTextFile();
         }
-
-
-        //Eroare----> Cand incepe sa fie mai prost, nu i se copiaza inapoi bestBrainModelul, in schimb mai face modificari la acelasi ala vechi
-
-
-
-
     }
 }

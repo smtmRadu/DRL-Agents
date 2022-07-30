@@ -83,8 +83,8 @@ public class NeuralNetwork
         }
     }
 
-    //-------------------OPERATIONS--------------------//
-    public float[] FeedForward(float[] inputs)
+    //-------------------Propagation--------------------//
+    public float[] ForwardPropagation(float[] inputs)
     {
         SetInputs(inputs);
 
@@ -106,14 +106,54 @@ public class NeuralNetwork
 
         return neurons[neurons.Length-1]; //Return the last layer (OUTPUT)
     }
+    public void BackPropagation()
+    {
+
+    }
+
+    //--------------------MUTATIONS---------------------//
     public void MutateWeights()
     {
         for (int i = 0; i < weights.Length; i++)
             for (int j = 0; j < weights[i].Length; j++)
                 for (int k = 0; k < weights[i][j].Length; k++)
-                    MutateWeight(ref weights[i][j][k]);
+                    MutateWeightType1(ref weights[i][j][k]);
+    }
+    protected void MutateWeightType1(ref float weight)
+    {
+        float randNum = UnityEngine.Random.Range(0f, 10f);
+
+        if (randNum <= 2f)//20% chance of flip sign of the weight
+        {
+            weight *= -1f;
+        }
+        else if (randNum <= 4f)//20% chance of fully randomize weight
+        {
+            weight = UnityEngine.Random.Range(-.5f, .5f);
+        }
+        else if (randNum <= 6f)//20% chance of increase to 100 - 200 %
+        {
+            float factor = UnityEngine.Random.Range(0f, 1f) + 1f;
+            weight *= factor;
+        }
+        else if (randNum <= 8f)//20% chance of decrease from 0 - 100 %
+        {
+            float factor = UnityEngine.Random.Range(0f, 1f);
+            weight *= factor;
+        }
+        else { }//20% chance of NO MUTATION
+
+
+
+
+    }
+    protected void MutateWeightType2(ref float weight)
+    {
+
     }
 
+
+    //---------------------FITNESS------------------------//
     public int CompareTo(NeuralNetwork other)
     {
         if (other == null) return 1;
@@ -122,8 +162,6 @@ public class NeuralNetwork
         if (this.fitness < other.fitness) return -1;
         return 0;
     }
-
-    //+++FITNESS+++//
     public void AddFitness(float fit)
     {
         this.fitness += fit;
@@ -156,35 +194,8 @@ public class NeuralNetwork
         float val = (float)   1f / (1f + Mathf.Exp(-value));
         return val;
     }
-    protected void MutateWeight(ref float weight)
-    {
-        float randNum = UnityEngine.Random.Range(0f, 10f);
 
-        if (randNum <= 2f)//20% chance of flip sign of the weight
-        {
-            weight *= -1f;
-        }
-        else if (randNum <= 4f)//20% chance of fully randomize weight
-        {
-            weight = UnityEngine.Random.Range(-.5f, .5f);
-        }
-        else if (randNum <= 6f)//20% chance of increase to 100 - 200 %
-        {
-            float factor = UnityEngine.Random.Range(0f, 1f) + 1f;
-            weight *= factor;
-        }
-        else if (randNum <= 8f)//20% chance of decrease from 0 - 100 %
-        {
-            float factor = UnityEngine.Random.Range(0f, 1f);
-            weight *= factor;
-        }
-        else { }//20% chance of NO MUTATION
-
-
-
-
-    }
-
+    
     //--------------Setters & Getters------------------//
     public int[] GetLayers()
     {
