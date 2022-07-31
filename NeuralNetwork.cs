@@ -9,7 +9,7 @@ public class NeuralNetwork
     protected float[][] neurons;
     protected float[][][] weights;
     protected float fitness;
-    private float bias = 0;
+    static private float bias = 0;
     public NeuralNetwork(int[] layers)
     {
         InitializeLayers(layers);
@@ -68,18 +68,18 @@ public class NeuralNetwork
             for (int n = 0; n < neurons[i].Length; n++)
             {
                 float[] neuronWeights = new float[neuronsInPreviousLayer];
-                SetNeuronsWeightsRandom(neuronWeights);
+                SetWeightsOfASingleNeuronWithNormalDistribution(neuronWeights);
                 weightsOnLayerList.Add(neuronWeights);
             }
             weightsList.Add(weightsOnLayerList.ToArray());
         }
         weights = weightsList.ToArray();
     }
-    protected void SetNeuronsWeightsRandom(float[] axons)
+    protected void SetWeightsOfASingleNeuronWithNormalDistribution(float[] axons)
     {
         for (int i = 0; i < axons.Length; i++)
         {
-            axons[i] = UnityEngine.Random.Range(-.5f, .5f);
+            axons[i] = GetRandomNumberFromNormalDistribution();
         }
     }
 
@@ -97,8 +97,7 @@ public class NeuralNetwork
                 {
                     value += weights[l - 1][n][p] * neurons[l - 1][p];
                 }
-
-                neurons[l][n] = ActivationFunction(value);
+                neurons[l][n] = SigmoidFunction(value);
             }
         }
 
@@ -141,7 +140,8 @@ public class NeuralNetwork
             float factor = UnityEngine.Random.Range(0f, 1f);
             weight *= factor;
         }
-        else { }//20% chance of NO MUTATION
+        else {
+        }//20% chance of NO MUTATION
 
 
 
@@ -187,14 +187,21 @@ public class NeuralNetwork
             neurons[0][i] = inputs[i];
         }
     }
-    protected float ActivationFunction(float value)
+    static float SigmoidFunction(float value)
     {
         // Function is x = 1/(1 + e^(-x))
-        
-        float val = (float)   1f / (1f + Mathf.Exp(-value));
-        return val;
+        return  (float)   1f / (1f + Mathf.Exp(-value));
     }
-
+    static float NormalDistributionOf(float x, float sigma = 1f, float mu = 0f)
+    {
+        return (float)(1 / Math.Sqrt((2f * Math.PI * Mathf.Pow(sigma, 2f)))
+                           * Mathf.Exp(-1f/2f * Mathf.Pow((x-mu)/sigma,2f)));
+    }
+    static float GetRandomNumberFromNormalDistribution()
+    {
+        return UnityEngine.Random.Range(-1f, 1f);
+    }
+  
     
     //--------------Setters & Getters------------------//
     public int[] GetLayers()

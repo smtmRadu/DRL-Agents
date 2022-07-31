@@ -8,21 +8,30 @@ using System.Linq;
 
 public class Agent : MonoBehaviour
 {
-    [Header("Agent Properties-------------------------------")]
+    [Header("===== Agent Properties =====")]
     public BehaviourType behaviour = BehaviourType.Default;
-    [SerializeField, Range(1,15), Tooltip("The number of Inputs that the Agent will receive (-1,1)")] private int spaceSize = 1;
+    [SerializeField, Range(1, 15), Tooltip("The number of Inputs that the Agent will receive (-1,1)")] private int spaceSize = 1;
     [SerializeField, Range(1, 15), Tooltip("The number of Outputs that the Agent will return (-1,1)")] private int actionSize = 1;
-    [SerializeField, Range(1, 15), Tooltip("The number of Hidden Layers, the neurons for each layer is spaceSize+actionSize")] private int deep = 1;
     public NeuralNetwork network = null;
+
     
-    public bool createNeuralNetwork = false;
-    public bool clearAndMakeANewNeuralNetwork = false;
-    [Space, Header("Network Properties-----------------------------")]
-    public bool networkStatus = false;
-    [Tooltip("If path!=null, it means it has a model assigned")] public string path = null;
-    public float currentNNFitness = 0f;
+    [Space, Header("===== Network Properties =====")]
+    [Tooltip("If path != null -> Has a model assigned + if(networkStatus) -> The model is also loaded")] public string path = null;
+    [SerializeField, Range(1, 15), Tooltip("The number of Hidden Layers")] private int deep = 1;
+    [SerializeField, Range(1, 100), Tooltip("The number of Neurons per Hidden Layer." + "[Usually you can set it as (spaceSize + actionSize)]")] private int neuronsPerLayer = 2;
     int[] layersFormat = null;
     
+
+    [Space(40)]
+    [Tooltip("If false -> network variable is null (If it has a saveFile, the network must be Loaded using SetNetworkFromFileFunction(this.path,this.network")]
+    public bool networkStatus = false;
+    public float currentNNFitness = 0f;
+    [Space]
+    [Tooltip("Instatiate NeuralNetwork + create a save file + path")] 
+    public bool CreateBrain = false;
+    [Tooltip("Resets the current NeuralNetwork data")]
+    public bool ResetNeuralNetwork = false;
+
 
     protected float[] inputs = null;
     protected virtual void Awake()
@@ -38,15 +47,15 @@ public class Agent : MonoBehaviour
             currentNNFitness = network.GetFitness();
         UpdateLayersFormat();
         UpdateNetworkStatus();
-        if(createNeuralNetwork == true)
+        if(CreateBrain == true)
         {
             CreateNeuralNetwork(true,layersFormat);
-            createNeuralNetwork = false;
+            CreateBrain = false;
         }
-        if(clearAndMakeANewNeuralNetwork == true)
+        if(ResetNeuralNetwork == true)
         {
             CreateNeuralNetwork( false,layersFormat);
-            clearAndMakeANewNeuralNetwork = false;
+            ResetNeuralNetwork = false;
         }
         if (behaviour == BehaviourType.Learning)
             Learning(true);
@@ -63,6 +72,12 @@ public class Agent : MonoBehaviour
 
 
     //-----------------------FUNCTIONS-------------------//
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="needTxtFile"> true if need to create a new save file</param>
+    /// <param name="format"> the format of the NeuralNetork in layers, is neccesary a int[]</param>
+    /// <param name="copyOfBrain"> data contents from other NeuralNetwork that are copied on the new created NN</param>
     public void CreateNeuralNetwork(bool needTxtFile,int[] format, string[] copyOfBrain = null)
     {
 
@@ -106,7 +121,8 @@ public class Agent : MonoBehaviour
     }
 
     /// <summary>
-    /// This Method Sets the Network for this Agent from another file. The Method Updates his current File with the new Network
+    /// 
+    /// Sets the Network for this Agent from another file. The Method Updates his current File with the new Network including Fitness
     /// </summary>
     /// <param name="path"> the path of the network you want to initialize this agent with</param>
     /// <param name="network"> the network of the agent you want to set ( usually this.network)</param>
@@ -202,6 +218,8 @@ public class Agent : MonoBehaviour
         SBtxtNN.Append(".txt");
         path = SBtxtNN.ToString();
 
+        if (!Directory.Exists(Application.streamingAssetsPath + "/Neural_Networks/"))
+                Directory.CreateDirectory(Application.streamingAssetsPath + "/Neural_Networks/");
         if (!File.Exists(path))
             File.Create(path);
         else
@@ -271,7 +289,12 @@ public class Agent : MonoBehaviour
         else
             networkStatus = true;
     }
-    
+    public void ResetFitnessTo(float value, bool alsoUpdateDataFile = true)
+    {
+        this.network.SetFitness(0);
+        if(alsoUpdateDataFile)
+              UpdateTextFile();
+    }
    
 
     private void Default()
@@ -325,18 +348,7 @@ public class Agent : MonoBehaviour
             return false;
         return true;
     }
-    protected void AddReward(float reward)
-    {
-        if(network == null)
-        {
-            Debug.LogError("Cannot modify reward because neural network is null");
-            return;
-        }
-        else
-            network.AddFitness(reward);
-
-    }
-    protected void SetReward(float reward)
+    protected void AddReward(float reward, bool alsoUpdateDataFile = true)
     {
         if (network == null)
         {
@@ -344,7 +356,23 @@ public class Agent : MonoBehaviour
             return;
         }
         else
+        {
+            network.AddFitness(reward);
+            UpdateTextFile();
+        }
+    }
+    protected void SetReward(float reward, bool alsoUpdateDataFile = true)
+    {
+        if (network == null)
+        {
+            Debug.LogError("Cannot modify reward because neural network is null");
+            return;
+        }
+        else
+        {   
             network.SetFitness(reward);
+            UpdateTextFile();
+        }
     }
 
     //----------------------External use functions---------------//
@@ -361,8 +389,8 @@ public class Agent : MonoBehaviour
     }
     protected void EndEpisode()
     {
-        UpdateTextFile();
         behaviour = BehaviourType.Static;
+        UpdateTextFile();        
     }
     protected virtual void OnDestroy()
     {
@@ -409,7 +437,7 @@ public class Agent : MonoBehaviour
 
         for (int i = 1; i < layersFormat.Length-1; i++)
         {
-            layersFormat[i] = spaceSize + actionSize;
+            layersFormat[i] = neuronsPerLayer;
         }
     }
 
@@ -430,7 +458,9 @@ public class Agent : MonoBehaviour
 
 public enum BehaviourType
 {
-    [Tooltip("Self Control and Keyboard Control are off")]
+    [Tooltip("Self Control and Keyboard Control are OFF.\n" +
+        "Behaviour required for Episode end.\n" +
+        "When the Episode resets, the behaviour is set to Learning")]
     Static,
     [Tooltip("if nn -> nn control without training\n" +
              "else  -> heuristic control")]

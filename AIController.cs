@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class AIController: Agent
 {
-    [Space, Header("Player Properties-------------------------------")]
+    [Space, Header("===== AI Properties =====")]
     [SerializeField] private float maxSpeed = 5f;
     [SerializeField] private float speed = 5f;
     [SerializeField] private float jumpPower = 5f;
@@ -47,6 +47,16 @@ public class AIController: Agent
         if (!base.OnOutputsReceived(ActionBuffer))
             return false;
 
+       /* string contents = "| ";
+        foreach (var item in ActionBuffer)
+        {
+            contents += item + " | ";
+        }
+        Debug.Log(contents);*/
+
+
+
+
         if (ActionBuffer[0] >.5f && rb.velocity.magnitude < maxSpeed)
         {
             rb.AddForce(Vector2.right * speed * Time.deltaTime * 10000);
@@ -55,7 +65,7 @@ public class AIController: Agent
         {
             rb.AddForce(Vector2.left * speed * Time.deltaTime * 10000);
         }
-        if (ActionBuffer[0] >.5f && canJump)
+        if (ActionBuffer[1] >.5f && canJump)
         {
             
                 rb.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
@@ -69,11 +79,9 @@ public class AIController: Agent
         
         base.UpdateInputs(out SensorBuffer);
         SensorBuffer[0] = transform.position.x;
-        SensorBuffer[1] = transform.position.x - backTrap.position.x;
 
-        return;
-        string inputs = string.Join(" | ", SensorBuffer);
-        Debug.Log("Inputs: " + inputs);
+        /*string inputs = string.Join(" - ", SensorBuffer);
+        Debug.Log(inputs);*/
     }
 
     public void OnCollisionEnter2D(Collision2D collision)
@@ -82,7 +90,7 @@ public class AIController: Agent
             canJump = true;
         if(collision.collider.CompareTag("Enemy") && behaviour != BehaviourType.Heuristic && networkStatus)
         {
-            SetReward(transform.position.x);
+            AddReward(transform.position.x);
             EndEpisode();
         }
     }
