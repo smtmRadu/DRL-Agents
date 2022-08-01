@@ -22,14 +22,19 @@ public class Trainer : TrainerAgent
     protected override void Awake()
     {
         base.Awake();
+        startingPositions = new Vector3[teamSize];
+        for (int i = 0; i < startingPositions.Length; i++)
+        {
+            startingPositions[i] = Vector3.zero;
+        }
         pushWallStartingPos = PushWall.transform.position;
     }
     protected override void SetupTeam()
     {
         base.SetupTeam();
-        foreach (GameObject member in team)
+        foreach (AI member in teamArray)
         {
-            member.GetComponent<SpriteRenderer>().color = new Color(Random.value, Random.value, Random.value);
+            member.agent.GetComponent<SpriteRenderer>().color = new Color(Random.value, Random.value, Random.value);
         }
     }
     protected override void EnvironmentAction()

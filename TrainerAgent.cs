@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.IO;
 using UnityEngine.UI;
 using System.IO;
+using System.Text;
 using TMPro;
 using UnityEditor;
 
@@ -14,7 +15,7 @@ using UnityEditor;
  * the nextGeneration get the best brain that is now and a mutation is applied for each of them
  * the procces repeats
  */
-//The improved TrainerAgent class works like this
+//The improved TrainerAgent class works like this -> Uses NextGeneration2
 /*Takes all AI's and give them this brain
  * half of them are mutated
  * every evolutionStep* times, the best half brains are saved in a Directory called Best_Neural_Networks  [also the best brain from all of them is saved in Best_Neural_Network]
@@ -22,123 +23,157 @@ using UnityEditor;
  * the process repeats
  */
 
-public class TrainerAgent: MonoBehaviour
+public class TrainerAgent : MonoBehaviour
 {
     [Header("=== AI Models ===")]
     public GameObject AIModel;
-    [Tooltip("Insert the path of the brain")]public string BrainModel;
+    [Tooltip("Insert the path of the brain")] public string BrainModel;
     [Space(20)]
     //Some things must be modified in order to efficiently use it:
     // 1. in EndEpisode() -> UpdateTextFile only if this is enabled
     // 2. on ResetEpisodeTo(0,!fastTraining) calls -> Do not UpdateTextFile because it doesn t matter(the network var is compared at the end)
     //[SerializeField, Tooltip("Enabling this option the trainer will not Overwrite AI's File after each Episode")] bool fastTraining = true;
     public bool clearAllNNAtSessionEnd = true;
-    public bool mutateFromStart = true;
+    public bool mutateAllFromStart = true;
     private string bestBrainModel = "Assets/StreamingAssets/Best_Neural_Network/BestNeuralNetwork.txt";
+    private string bestHalfBrainModelsFolder = "Assets/StreamingAssets/Best_Neural_Networks/";
     private float bestFitness;
+
+    [Space,SerializeField] TMPro.TMP_Text statisticsDisplay = null;
+
     [Space, Header("=== Team Settings ===")]
-    [Range(1,100)]public int teamSize = 1;
-    [Range(1, 20),Tooltip("Frequency for calling NextGeneration")] public int evolutionStep = 5;
-    [Range(1, 1000),Tooltip("Total Episodes in this Training Session")] public int maxStep = 10;
-    
-    
+    [Range(1, 100)] public int teamSize = 1;
+    [Range(1, 20), Tooltip("Frequency for calling NextGeneration")] public int evolutionStep = 5;
+    [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxStep = 10;
+    public TrainingStrategy trainingStrategy = TrainingStrategy.Best;
+
     private int currentStep = 1;
-    protected List<GameObject> team = new List<GameObject>();
+    protected AI[] teamArray;
 
-    Vector3 startingPos;
+    protected Vector3[] startingPositions;
     bool canTrain = true;
-    bool environmentCanGo=false;    
+    bool environmentCanGo = false;
 
 
+    //Task -> resolve color translation to Hexa
+ 
     protected virtual void Awake()
     {
-        startingPos = Vector3.zero;
-        CreateBestNeuralNetworkIfDoesNotExist();
+        CreateDirAndBestBrainFile();
     }
     private void Start()
     {
-        
+        BestStrategySet();
         CheckTrainingPreparation();
         if (!canTrain)
             return;
         SetupTeam();
 
-       
+
     }
     void Update()
     {
         if (canTrain == true)
         {
-            
+
             canTrain = false;
             StartCoroutine(Training());
         }
-        if(environmentCanGo)
+        if (environmentCanGo)
         {
             EnvironmentAction();
         }
-
     }
 
     //---------------------------------------------------------------------------------//
     void CheckTrainingPreparation()
     {
-        if(AIModel == null)
+        if (AIModel == null)
         {
             canTrain = false;
             Debug.Log("The training cannot start! Reason: No AI Model uploaded");
             return;
         }
-        if(AIModel.GetComponent<AIController>() == null)
+        if (AIModel.GetComponent<AIController>() == null)
         {
             canTrain = false;
             Debug.Log("The training cannot start! Reason: No Brain Model uploaded");
             return;
         }
-    } 
-    void CreateBestNeuralNetworkIfDoesNotExist()
+    }
+    void CreateDirAndBestBrainFile()
     {
-        if(!Directory.Exists(Application.streamingAssetsPath + "/Best_Neural_Network/"))
-             Directory.CreateDirectory(Application.streamingAssetsPath + "/Best_Neural_Network/");
+        if (!Directory.Exists(Application.streamingAssetsPath + "/Best_Neural_Network/"))
+            Directory.CreateDirectory(Application.streamingAssetsPath + "/Best_Neural_Network/");
         if (!File.Exists(bestBrainModel))
-             File.Create(bestBrainModel);
+            File.Create(bestBrainModel);
+        return;
+
+
+       /* //Create a Directory for Best_Neural_Networks  -> Used for the Second Training Stategy
+        if (!Directory.Exists(Application.streamingAssetsPath + "/Best_Neural_Networks/"))
+            Directory.CreateDirectory(Application.streamingAssetsPath + "/Best_Neural_Networks/");*/
+    }
+    void BestStrategySet()
+    {
+        if (trainingStrategy == TrainingStrategy.Best)
+            trainingStrategy = TrainingStrategy.Strategy3;
     }
     protected virtual void SetupTeam()
     {
+        teamArray = new AI[teamSize];
+
+        //Instantiate AI's and teamArray
         for (int i = 0; i < teamSize; i++)
         {
-            GameObject member = Instantiate(AIModel, startingPos, Quaternion.identity);
-            team.Add(member);
+            GameObject member = Instantiate(AIModel, startingPositions[i], Quaternion.identity);
+            teamArray[i].agent = member;
+            teamArray[i].controller = member.GetComponent<AIController>() as AIController;
+            teamArray[i].fitness = teamArray[i].controller.currentNNFitness;
         }
+
+        //Check Brain Model
         string[] brainModelContents = File.ReadAllLines(BrainModel);
-        if(brainModelContents.Length == 0)
+        if (brainModelContents.Length == 0)
         {
-            Debug.Log("Brain Model file is Empty! Please Insert a Valid Model!");
+            Debug.Log("Brain Model file is Empty! Please Insert a Valid Model and Restart!");
             canTrain = false;
             return;
         }
-        foreach (GameObject member in team)
+
+        //Initialize AI's
+        for (int i = 0; i < teamArray.Length; i++)
         {
-            AIController memberScript = member.GetComponent<AIController>();
-            memberScript.CreateNeuralNetwork(true, memberScript.GetLayersFormat(), brainModelContents);
+            var controller = teamArray[i].controller;
+            controller.CreateNeuralNetwork(true, controller.GetLayersFormat(), brainModelContents);
+            controller.ResetFitnessTo(0f, true);
+            if (mutateAllFromStart)
+                controller.MutateHisBrain();
+            controller.behaviour = BehaviourType.Learning;
 
-            memberScript.ResetFitnessTo(0f, true);
+            teamArray[i].agent.transform.position = startingPositions[i];
 
-            if(mutateFromStart)
-                memberScript.MutateHisBrain();
-            
-           
-            memberScript.behaviour = BehaviourType.Learning;
-            member.transform.position = startingPos;
+
         }
+
+
+        //Set best Fitness
         bestFitness = float.Parse(brainModelContents[brainModelContents.Length - 1]);
+
+        //Set All fitnesses to 0
+        for (int i = 0; i < teamArray.Length; i++)
+        {
+            teamArray[i].controller.ResetFitnessTo(0f, true);
+            teamArray[i].fitness = teamArray[i].controller.currentNNFitness;
+        }
+        UpdateStatisticsDisplay();
     }
- 
-    
+
+
     //------------------------------------TRAINING PROCESS-----------------------------//
     IEnumerator Training()
     {
-        if(!environmentCanGo)
+        if (!environmentCanGo)
             environmentCanGo = true;
 
         if (AreAllDead())
@@ -163,16 +198,13 @@ public class TrainerAgent: MonoBehaviour
     void StopTraining()
     {
         environmentCanGo = false;
-        Debug.Log("Training Session Ended! \nBehaviour Mode for all AIs was set to Heuristic"); 
-        NextGeneration();
-        foreach (var member in team)
+        Debug.Log("Training Session Ended! \nBehaviour Mode for all AIs was set to Heuristic");
+        NextGeneration1();
+        foreach (AI aI in teamArray)
         {
-            AIController script = member.GetComponent<AIController>();
-            script.behaviour = BehaviourType.Static;
-            File.Delete(script.path);
+            aI.controller.behaviour = BehaviourType.Static;
+            File.Delete(aI.controller.path);
         }
-
-
     }
     protected virtual void EnvironmentAction()
     {
@@ -180,44 +212,114 @@ public class TrainerAgent: MonoBehaviour
     }
     private bool AreAllDead()
     {
-        foreach (var member in team)
+        foreach (AI item in teamArray)
         {
-            try
-            {
-                if (member.GetComponent<AIController>().behaviour == BehaviourType.Learning)
-                    return false;
-            }
-            catch { }
-           
+            if(item.controller.behaviour == BehaviourType.Learning)
+                return false;
         }
         return true;
+        //If they are not all Static, it means they are not all dead
 
     }
     protected virtual void ResetEpisode()
-    { 
-        environmentCanGo=false;
-
-        if(currentStep%evolutionStep == 0)
-             NextGeneration();
-
-        foreach (var member in team)
+    {
+        environmentCanGo = false;
+        UpdateStatisticsDisplay();
+        //Update fitnesses in Array
+        for (int i = 0; i < teamArray.Length; i++)
         {
-            member.transform.position = startingPos;
-            member.GetComponent<AIController>().behaviour = BehaviourType.Learning;
+            teamArray[i].fitness = teamArray[i].controller.currentNNFitness;
+        }//Update fitness in array ( THIS CAN BE UPDATED JUST WHEN NEXT EVOLUTION IS HAPPENING for EFFICIENCY )
+
+        //Next Gen
+        if (currentStep % evolutionStep == 0)
+        {
+            switch (trainingStrategy)
+            {
+                case TrainingStrategy.Strategy1:
+                    NextGeneration1();
+                    break;
+                case TrainingStrategy.Strategy2:
+                    NextGeneration2();
+                    break;
+                case TrainingStrategy.Strategy3:
+                    NextGeneration3();
+                    break;
+                default:
+                    Debug.LogError("Training Strategy is NULL");
+                    break;
+
+            }
+            //Reset fitness to 0 in next training steps
+            for (int i = 0; i < teamArray.Length; i++)
+            {
+                teamArray[i].fitness = 0f;
+            }
+
         }
-        
+
+        //Reset vars
+        for (int i = 0; i < teamArray.Length; i++)
+        {
+            teamArray[i].agent.transform.position = startingPositions[i];
+            teamArray[i].controller.behaviour = BehaviourType.Learning;
+        }
+    
         environmentCanGo = true;
         //---Environment Reset must be overridden
     }
-    private void NextGeneration()
+    private void UpdateStatisticsDisplay()
+    {
+        //Update is called after every EpisodeReset
+        if (statisticsDisplay == null)
+            return;
+
+        StringBuilder statData = new StringBuilder();
+        statData.AppendLine("<b>Step: " + currentStep + "\n | Goal: " + bestFitness + "</b>");
+        foreach (AI item in teamArray)
+        {
+            StringBuilder line = new StringBuilder();
+
+            //Try COLORIZE
+            bool hasColor = true;
+            try
+            {
+                Color color = item.agent.GetComponent<SpriteRenderer>().color;
+
+                string colorString = "#F02941";
+                line.Append("<color=" + colorString + ">");
+            }
+            catch{ hasColor = false; }
+
+            line.Append("ID: ");
+            line.Append(item.agent.GetInstanceID().ToString());
+            line.Append(" | Fitness: ");
+            line.Append(item.controller.currentNNFitness);
+
+
+            //IF COLORIZED
+            if (hasColor)
+                line.Append("</color>");
+                    
+
+
+            line.Append("\n");
+            statData.AppendLine(line.ToString());
+        }
+
+        statisticsDisplay.text = statData.ToString();
+    }
+
+    //-------------------------------------TRAINING STRATEGIES-------------------------//
+    private void NextGeneration1()
     {
         //Find Best AI and it's fitness
         float bestFitInThisGen = float.MinValue;
         int bestAiIndex = -1;
-        for (int i = 0; i < team.Count; i++)
+        for (int i = 0; i < teamArray.Length; i++)
         {
-            float fit = team[i].GetComponent<AIController>().currentNNFitness;
-           
+            float fit = teamArray[i].controller.currentNNFitness;
+
             if (fit > bestFitInThisGen)
             {
                 bestFitInThisGen = fit;
@@ -225,7 +327,7 @@ public class TrainerAgent: MonoBehaviour
             }
         }
         //In case the new generation is weaker than the previous one | their brain evoluted in a wrong way  ===> do not update the best brain
-        if (bestFitInThisGen < this.bestFitness)
+        if (bestFitInThisGen <= this.bestFitness)
             Debug.Log("Step: " + currentStep + " | NextGen - NO  | This Gen MaxFitness: " + bestFitInThisGen + " < " + this.bestFitness);
         else
         {
@@ -235,21 +337,167 @@ public class TrainerAgent: MonoBehaviour
             //-----COPY THIS STEP BRAIN TO BEST BRAIN
             try
             {
-                 File.Copy(team[bestAiIndex].GetComponent<AIController>().GetCurrentNetworkPath(), bestBrainModel, true);
-            } catch { Debug.Log("Couldn't Update best brain"); }  
+                File.Copy(teamArray[bestAiIndex].controller.GetCurrentNetworkPath(), bestBrainModel, true);
+            } catch { Debug.Log("Couldn't Update best brain"); }
         }
 
         //------COPY BEST BRAIN IN ALL AI's BRAINS AND RESET THE FITNESS TO 0 --> the data in saveFile remains with the old fitness
-        foreach (GameObject ai in team)
+        foreach (AI item in teamArray)
         {
-            AIController script = ai.GetComponent<AIController>();
-            script.CopyNetworkFrom(bestBrainModel);
-            script.SetNetworkFromFile(script.path, ref script.network);
-            script.ResetFitnessTo(0f, true);
-            script.MutateHisBrain();
+            var controller = item.controller;
+            controller.CopyNetworkFrom(bestBrainModel);
+            controller.SetNetworkFromFile(item.controller.path, ref item.controller.network);
+            controller.ResetFitnessTo(0f, true);
+            controller.MutateHisBrain();
         }
     }
+    private void NextGeneration2()
+    {
 
+        SortAIsByFitness(teamArray);
+
+        //Verification
+        string str = "Step: " + currentStep + " TEAM: <color=red>";
+        for (int i = 0; i < teamArray.Length; i++)
+        {
+            if (i == teamArray.Length / 2)
+                str += " |</color><color=#4db8ff>";
+            str += " | " + teamArray[i].fitness.ToString();
+
+        }
+        str += " |</color>";
+
+
+        float thisGenerationBestFitness = teamArray[teamArray.Length - 1].fitness;
+        if (thisGenerationBestFitness <= this.bestFitness)
+            str += "\n                      | Evolution - NO  | This Gen MaxFitness: " + thisGenerationBestFitness + " < " + this.bestFitness + " |";
+        else
+        {
+            str += "\n                      | Evolution - YES | This Gen MaxFitness: " + thisGenerationBestFitness + " > " + this.bestFitness + " |";
+            this.bestFitness = thisGenerationBestFitness;
+            //Try copy brain of the best AI to BestNeuralNetwork.txt
+            try
+            {
+                File.Copy(teamArray[teamArray.Length - 1].controller.GetCurrentNetworkPath(), bestBrainModel, true);
+            }
+            catch { Debug.Log("Couldn't Update BestNeuralNetwork.txt"); }
+        }
+        Debug.Log(str);
+        //Strategy3 --> Assign to first 2 Guys The Best brain and make the reproduction from the rest
+
+        //GetHalfBestBrains and assign to worst guys
+        int halfCount = teamArray.Length / 2;
+        if (teamArray.Length % 2 == 0)//If Even team Size
+            for (int i = 0; i < halfCount; i++)
+            {
+                var controller = teamArray[i].controller;
+                controller.CopyNetworkFrom(teamArray[i + halfCount].controller.path);//Copy Brain From AI with his index+halfCount
+                controller.SetNetworkFromFile(controller.path, ref controller.network);
+                controller.MutateHisBrain();
+            }
+        else
+            for (int i = 0; i <= halfCount; i++)
+            {
+                var controller = teamArray[i].controller;
+                controller.CopyNetworkFrom(teamArray[i + halfCount].controller.path);//Copy Brain From AI with his index+halfCount
+                controller.SetNetworkFromFile(controller.path, ref controller.network);
+                controller.MutateHisBrain();
+            }
+
+        //Reset Their Fitness in the neural network and also update his file
+        for (int i = 0; i < teamArray.Length; i++)
+        {
+            teamArray[i].controller.ResetFitnessTo(0f, true);
+        }
+
+        ///SUMMARY
+        //Find best Half Ai's
+        //Save their Brains in Best_Neural_Networks
+        //Assign the brains two times for each AI, but mutate one of the AI's -> this way we keep a version of the old brain if the new mutated one is shit
+        //Reset the Fitness to all AI's
+    }
+    private void NextGeneration3()
+    {
+
+        SortAIsByFitness(teamArray);
+
+        //Verification
+        string str = "";
+        for (int i = 0; i < teamArray.Length; i++)
+        {
+            if (i == teamArray.Length / 2)
+                str += "<color=red>";
+            str += " | " + teamArray[i].fitness.ToString();
+
+        }
+        str += "</color>";
+        Debug.Log("AfterSort: " + str + " |");
+
+        float thisGenerationBestFitness = teamArray[teamArray.Length - 1].fitness;
+        if (thisGenerationBestFitness <= this.bestFitness)
+            Debug.Log("Step: " + currentStep + " | Evolution - NO  | This Gen MaxFitness: " + thisGenerationBestFitness + " < " + this.bestFitness + " |");
+        else
+        {
+            Debug.Log("Step: " + currentStep + " | Evolution - YES | This Gen MaxFitness: " + thisGenerationBestFitness + " > " + this.bestFitness + " |");
+            this.bestFitness = thisGenerationBestFitness;
+            //Try copy brain of the best AI to BestNeuralNetwork.txt
+            try
+            {
+                File.Copy(teamArray[teamArray.Length - 1].controller.GetCurrentNetworkPath(), bestBrainModel, true);
+            }
+            catch { Debug.Log("Couldn't Update BestNeuralNetwork.txt"); }
+        }
+
+        //Strategy3 --> Assign to first 2 Guys The Best brain and make the reproduction from the rest
+
+        //GetHalfBestBrains and assign to worst guys
+        int halfCount = teamArray.Length / 2;
+        if (teamArray.Length % 2 == 0)//If Even team Size
+            for (int i = 0; i < halfCount; i++)
+            {
+                var controller = teamArray[i].controller;
+                controller.CopyNetworkFrom(teamArray[i + halfCount].controller.path);//Copy Brain From AI with his index+halfCount
+                controller.SetNetworkFromFile(controller.path, ref controller.network);
+                controller.MutateHisBrain();
+            }
+        else
+            for (int i = 0; i <= halfCount; i++)
+            {
+                var controller = teamArray[i].controller;
+                controller.CopyNetworkFrom(teamArray[i + halfCount].controller.path);//Copy Brain From AI with his index+halfCount
+                controller.SetNetworkFromFile(controller.path, ref controller.network);
+                controller.MutateHisBrain();
+            }
+
+        //Reset Their Fitness in the neural network and also update his file
+        for (int i = 0; i < teamArray.Length; i++)
+        {
+            teamArray[i].controller.ResetFitnessTo(0f, true);
+        }
+
+        ///SUMMARY
+        //Find best Half Ai's
+        //Save their Brains in Best_Neural_Networks
+        //Assign the brains two times for each AI, but mutate one of the AI's -> this way we keep a version of the old brain if the new mutated one is shit
+        //Reset the Fitness to all AI's
+    }
+
+    private void SortAIsByFitness(AI[] tm)
+    {
+        //InsertionSort
+        for (int i = 1; i < tm.Length; i++)
+        {
+            var key = tm[i];
+            int j = i - 1;
+            while(j >= 0 && tm[j].fitness > key.fitness)
+            {
+                tm[j + 1] = tm[j];
+                j--;
+            }
+            tm[j + 1] = key;
+        }
+    }
+    
     //------------------------------------Setters And Getters------------------------//
     int GetCurrentStep()
     {
@@ -259,4 +507,31 @@ public class TrainerAgent: MonoBehaviour
     {
         return bestFitness;
     }
+    private static void Swap<T>(ref T[] objArray, int index1, int index2)
+    {
+        if (objArray == null && objArray.Length <= index1 && objArray.Length <= index2) return;
+
+        var temp = objArray[index1];
+        objArray[index1] = objArray[index2];
+        objArray[index2] = temp;
+    }
+}
+public enum TrainingStrategy
+{
+    //The call for Strategy is in ResetEpisode Method
+    [Tooltip("Chooses the best Strategy according to the developer")]
+    Best,
+    [Tooltip("Only Best AI Reproduce + All NextGen get Mutated")]
+    Strategy1,
+    [Tooltip("Half Best AI Reproduce + Only reproducted AIs get Mutated")]
+    Strategy2,
+    [Tooltip("10% get Best Brain | 90% Half Best AI Reproduce + Only reproducted AIs get Mutated")]
+    Strategy3,
+
+}
+public struct AI
+{
+    public GameObject agent;
+    public AIController controller;
+    public float fitness;
 }

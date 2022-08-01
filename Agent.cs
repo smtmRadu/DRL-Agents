@@ -19,6 +19,12 @@ public class Agent : MonoBehaviour
     [Tooltip("If path != null -> Has a model assigned + if(networkStatus) -> The model is also loaded")] public string path = null;
     [SerializeField, Range(1, 15), Tooltip("The number of Hidden Layers")] private int deep = 1;
     [SerializeField, Range(1, 100), Tooltip("The number of Neurons per Hidden Layer." + "[Usually you can set it as (spaceSize + actionSize)]")] private int neuronsPerLayer = 2;
+    //Some things must be modified in order to efficiently use it:
+    // 1. in EndEpisode() -> UpdateTextFile only if this is enabled
+    // 2. on ResetEpisodeTo(0,!fastTraining) calls -> Do not UpdateTextFile because it doesn t matter(the network var is compared at the end)\
+    // 3. MOSTLY IS USED TO NOT UPDATETEXTFILE TOO MANY TIMES TO IMPROVE PERFORMANCE (it must be tested)
+    //[SerializeField, Tooltip("Enabling this option the trainer will not Overwrite AI's File after each Episode")] bool fastTraining = true;
+
     int[] layersFormat = null;
     
 
@@ -294,6 +300,7 @@ public class Agent : MonoBehaviour
         this.network.SetFitness(0);
         if(alsoUpdateDataFile)
               UpdateTextFile();
+        currentNNFitness = value;
     }
    
 

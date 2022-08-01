@@ -31,6 +31,12 @@ public class AIController: Agent
 
     protected override void Heuristic()
     {
+        Vector3 start = transform.position - new Vector3(0f, 0.7f, 0f);
+        Debug.DrawLine(start, start + new Vector3(1f, 0f, 0f) * 7, Color.red);
+        start = transform.position;
+        Debug.DrawLine(start, start + new Vector3(1f, 1f, 0) * 7, Color.blue);
+
+
         if (Input.GetKey(KeyCode.A) && rb.velocity.magnitude < maxSpeed)
             rb.AddForce(Vector2.left * speed * Time.deltaTime * 10000);
         else if (Input.GetKey(KeyCode.D) && rb.velocity.magnitude < maxSpeed)
@@ -78,10 +84,35 @@ public class AIController: Agent
     {
         
         base.UpdateInputs(out SensorBuffer);
-        SensorBuffer[0] = transform.position.x;
 
-        /*string inputs = string.Join(" - ", SensorBuffer);
-        Debug.Log(inputs);*/
+        //First Raycast doesn t work properly
+
+        Vector3 start = transform.position - new Vector3(0f,.3f,0f);
+        RaycastHit2D[] hits = Physics2D.RaycastAll(start, transform.right, 6f);
+        Debug.DrawLine(start, start + new Vector3(1f, 0f, 0f) * 6, Color.red);
+        SensorBuffer[0] = 0f;
+        foreach (var hit in hits)
+        {
+            if (hit.collider.CompareTag("Enemy"))
+            { SensorBuffer[0] = 1f; break; }
+        }
+
+
+
+        start = transform.position;
+        hits = Physics2D.RaycastAll(start,new Vector3(1f,1f,0), 7f);
+        Debug.DrawLine(start, start + new Vector3(1f, 1f, 0) * 7, Color.blue);
+        SensorBuffer[1] = 0f;
+        foreach (var hit in hits)
+        {
+            if (hit.collider.CompareTag("Enemy"))
+            { SensorBuffer[1] = 1f; break; }
+        }
+
+
+        return;
+        string inputs = string.Join(" | ", SensorBuffer);
+        Debug.Log(inputs);
     }
 
     public void OnCollisionEnter2D(Collision2D collision)
