@@ -25,6 +25,7 @@ using UnityEditor;
 
 public class TrainerAgent : MonoBehaviour
 {
+    //IN the first Step AI's are not mutated
     [Header("=== AI Models ===")]
     public GameObject AIModel;
     [Tooltip("Insert the path of the brain")] public string BrainModel;
@@ -33,9 +34,9 @@ public class TrainerAgent : MonoBehaviour
     // 1. in EndEpisode() -> UpdateTextFile only if this is enabled
     // 2. on ResetEpisodeTo(0,!fastTraining) calls -> Do not UpdateTextFile because it doesn t matter(the network var is compared at the end)
     //[SerializeField, Tooltip("Enabling this option the trainer will not Overwrite AI's File after each Episode")] bool fastTraining = true;
+    //INSERT MUTATION POWER -> or some sort of mutation Strategy
     [Tooltip("All files in /Neural_Networks/ will be deleted at the Start of a new Session.\n " +
     "This helps with Folder overflowing.")]public bool removeOldLogs = true;
-    [Tooltip("Turning this OFF will run the first step using the unmodified BrainModel")]public bool mutateAllFromStart = true;
     private string bestBrainModel = "Assets/StreamingAssets/Best_Neural_Network/BestNeuralNetwork.txt";
     private string bestHalfBrainModelsFolder = "Assets/StreamingAssets/Best_Neural_Networks/";
     private float bestFitness;
@@ -43,7 +44,7 @@ public class TrainerAgent : MonoBehaviour
     [Space,SerializeField] TMPro.TMP_Text statisticsDisplay = null;
 
     [Space, Header("=== Team Settings ===")]
-    [Range(1, 100)] public int teamSize = 1;
+    [Range(2, 100)] public int teamSize = 1;//IT cannot be 1 because there cannot be reproduction
     [Range(1, 5), Tooltip("Frequency for calling NextGeneration")] public int evolutionStep = 5;
     [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxStep = 10;
     public TrainingStrategy trainingStrategy = TrainingStrategy.Best;
@@ -124,7 +125,7 @@ public class TrainerAgent : MonoBehaviour
     void BestStrategySet()
     {
         if (trainingStrategy == TrainingStrategy.Best)
-            trainingStrategy = TrainingStrategy.Strategy3;
+            trainingStrategy = TrainingStrategy.Strategy2;
     }
     protected virtual void SetupTeam()
     {
@@ -154,13 +155,9 @@ public class TrainerAgent : MonoBehaviour
             var controller = teamArray[i].controller;
             controller.CreateNeuralNetwork(true, controller.GetLayersFormat(), brainModelContents);
             controller.ResetFitnessTo(0f, true);
-            if (mutateAllFromStart)
-                controller.MutateHisBrain();
             controller.behaviour = BehaviourType.Learning;
 
             teamArray[i].agent.transform.position = startingPositions[i];
-
-
         }
 
 
@@ -292,21 +289,29 @@ public class TrainerAgent : MonoBehaviour
             try
             {
                 Color color = item.agent.GetComponent<SpriteRenderer>().color;
-
-                string colorString = "#F02941";
-                line.Append("<color=" + colorString + ">");
+                Color32 color32 = new Color32();
+                ConvertColorToColor32(ref color, ref color32);
+                StringBuilder colorString = new StringBuilder();
+                colorString.Append("#");
+                colorString.Append(GetHexFrom(color32.r));
+                colorString.Append(GetHexFrom(color32.g));
+                colorString.Append(GetHexFrom(color32.b));
+ 
+                line.Append("<color=" + colorString.ToString() + ">");
             }
-            catch{ hasColor = false; }
+            catch(System.Exception e){ hasColor = false; Debug.Log(e); }
 
             line.Append("ID: ");
             line.Append(item.agent.GetInstanceID().ToString());
+            //IF COLORIZED
+            if (hasColor)
+                line.Append("</color>");
+
             line.Append(" | Fitness: ");
             line.Append(item.controller.currentNNFitness);
 
 
-            //IF COLORIZED
-            if (hasColor)
-                line.Append("</color>");
+            
                     
 
 
@@ -524,6 +529,67 @@ public class TrainerAgent : MonoBehaviour
         objArray[index1] = objArray[index2];
         objArray[index2] = temp;
     }
+    private static void ConvertColorToColor32(ref Color color, ref Color32 color32)
+    {
+        color32.r = System.Convert.ToByte(color.r * 255f);
+        color32.g = System.Convert.ToByte(color.g * 255f);
+        color32.b = System.Convert.ToByte(color.b * 255f);
+        color32.a = System.Convert.ToByte(color.a * 255f);
+    }
+    private static string GetHexFrom(int value)
+    {
+        ///The format of the Number is returned in XX Format
+        int firstValue = value;
+        
+        StringBuilder hexCode = new StringBuilder();
+        int remainder;
+        
+        while(value > 0)
+        {
+            remainder = value % 16;
+            value -= remainder;
+            value /= 16;
+
+            hexCode.Append(GetHexDigFromIntDig(remainder));
+        }
+        if(firstValue <= 15)
+            hexCode.Append("0");
+        string hex = hexCode.ToString();
+        ReverseString(ref hex);
+        return hex;
+    }
+
+    static string GetHexDigFromIntDig(int value)
+    {
+        if (value < 0 || value > 15)
+        {
+            Debug.LogError("Value Parsed is not a Digit in HexaDecimal");
+            return null;
+        }
+        if (value < 10)
+            return value.ToString();
+        else if (value == 10)
+            return "A";
+        else if (value == 11)
+            return "B";
+        else if (value == 12)
+            return "C";
+        else if (value == 13)
+            return "D";
+        else if (value == 14)
+            return "E";
+        else if (value == 15)
+            return "F";
+        else return null;
+    }
+    static void ReverseString(ref string str)
+    {
+        char[] charArray = str.ToCharArray();
+        System.Array.Reverse(charArray);
+        str = new string(charArray);
+    }
+
+
 }
 public enum TrainingStrategy
 {
