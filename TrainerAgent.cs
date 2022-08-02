@@ -33,8 +33,9 @@ public class TrainerAgent : MonoBehaviour
     // 1. in EndEpisode() -> UpdateTextFile only if this is enabled
     // 2. on ResetEpisodeTo(0,!fastTraining) calls -> Do not UpdateTextFile because it doesn t matter(the network var is compared at the end)
     //[SerializeField, Tooltip("Enabling this option the trainer will not Overwrite AI's File after each Episode")] bool fastTraining = true;
-    public bool clearAllNNAtSessionEnd = true;
-    public bool mutateAllFromStart = true;
+    [Tooltip("All files in /Neural_Networks/ will be deleted at the Start of a new Session.\n " +
+    "This helps with Folder overflowing.")]public bool removeOldLogs = true;
+    [Tooltip("Turning this OFF will run the first step using the unmodified BrainModel")]public bool mutateAllFromStart = true;
     private string bestBrainModel = "Assets/StreamingAssets/Best_Neural_Network/BestNeuralNetwork.txt";
     private string bestHalfBrainModelsFolder = "Assets/StreamingAssets/Best_Neural_Networks/";
     private float bestFitness;
@@ -43,7 +44,7 @@ public class TrainerAgent : MonoBehaviour
 
     [Space, Header("=== Team Settings ===")]
     [Range(1, 100)] public int teamSize = 1;
-    [Range(1, 20), Tooltip("Frequency for calling NextGeneration")] public int evolutionStep = 5;
+    [Range(1, 5), Tooltip("Frequency for calling NextGeneration")] public int evolutionStep = 5;
     [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxStep = 10;
     public TrainingStrategy trainingStrategy = TrainingStrategy.Best;
 
@@ -107,6 +108,12 @@ public class TrainerAgent : MonoBehaviour
             Directory.CreateDirectory(Application.streamingAssetsPath + "/Best_Neural_Network/");
         if (!File.Exists(bestBrainModel))
             File.Create(bestBrainModel);
+
+        //Clear Neural_Networks File
+        if(removeOldLogs)
+            foreach(string file in Directory.GetFiles("Assets/StreamingAssets/Neural_Networks/"))
+               File.Delete(file);
+
         return;
 
 
@@ -370,10 +377,10 @@ public class TrainerAgent : MonoBehaviour
 
         float thisGenerationBestFitness = teamArray[teamArray.Length - 1].fitness;
         if (thisGenerationBestFitness <= this.bestFitness)
-            str += "\n                      | Evolution - NO  | This Gen MaxFitness: " + thisGenerationBestFitness + " < " + this.bestFitness + " |";
+            str += "\n                   | Evolution - NO  | This Gen MaxFitness: " + thisGenerationBestFitness + " < " + this.bestFitness + " |";
         else
         {
-            str += "\n                      | Evolution - YES | This Gen MaxFitness: " + thisGenerationBestFitness + " > " + this.bestFitness + " |";
+            str += "\n                   | Evolution - YES | This Gen MaxFitness: " + thisGenerationBestFitness + " > " + this.bestFitness + " |";
             this.bestFitness = thisGenerationBestFitness;
             //Try copy brain of the best AI to BestNeuralNetwork.txt
             try
@@ -507,6 +514,8 @@ public class TrainerAgent : MonoBehaviour
     {
         return bestFitness;
     }
+
+    //-----------------------------------Complementary Methods------------------------//
     private static void Swap<T>(ref T[] objArray, int index1, int index2)
     {
         if (objArray == null && objArray.Length <= index1 && objArray.Length <= index2) return;
@@ -523,9 +532,9 @@ public enum TrainingStrategy
     Best,
     [Tooltip("Only Best AI Reproduce + All NextGen get Mutated")]
     Strategy1,
-    [Tooltip("Half Best AI Reproduce + Only reproducted AIs get Mutated")]
+    [Tooltip("Half Best AI Reproduce + Only copies get Mutated")]
     Strategy2,
-    [Tooltip("10% get Best Brain | 90% Half Best AI Reproduce + Only reproducted AIs get Mutated")]
+    [Tooltip("10% get Best Brain | 90% Half Best AI Reproduce + Only copies get Mutated")]
     Strategy3,
 
 }

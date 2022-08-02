@@ -11,11 +11,12 @@ public class AIController: Agent
     Rigidbody2D rb;
     bool canJump = true;
     [SerializeField] Transform backTrap;
-
+    private int bitMask;
 
     protected override void Awake()
     {
         base.Awake();
+        bitMask = 1 << 7;
         rb = GetComponent<Rigidbody2D>();
         backTrap = GameObject.Find("BackTrap").transform;
     }
@@ -31,8 +32,8 @@ public class AIController: Agent
 
     protected override void Heuristic()
     {
-        Vector3 start = transform.position - new Vector3(0f, 0.7f, 0f);
-        Debug.DrawLine(start, start + new Vector3(1f, 0f, 0f) * 7, Color.red);
+        Vector3 start = transform.position - new Vector3(0f, 1f, 0f);
+        Debug.DrawLine(start, start + new Vector3(1f, 0f, 0f) * 6, Color.red);
         start = transform.position;
         Debug.DrawLine(start, start + new Vector3(1f, 1f, 0) * 7, Color.blue);
 
@@ -85,30 +86,26 @@ public class AIController: Agent
         
         base.UpdateInputs(out SensorBuffer);
 
-        //First Raycast doesn t work properly
-
-        Vector3 start = transform.position - new Vector3(0f,.3f,0f);
-        RaycastHit2D[] hits = Physics2D.RaycastAll(start, transform.right, 6f);
+        Vector3 start = transform.position - new Vector3(0f,1f,0f);
+        RaycastHit2D[] hits = Physics2D.RaycastAll(start, transform.right, 6f,bitMask);
         Debug.DrawLine(start, start + new Vector3(1f, 0f, 0f) * 6, Color.red);
         SensorBuffer[0] = 0f;
+        
         foreach (var hit in hits)
         {
-            if (hit.collider.CompareTag("Enemy"))
             { SensorBuffer[0] = 1f; break; }
         }
 
 
 
         start = transform.position;
-        hits = Physics2D.RaycastAll(start,new Vector3(1f,1f,0), 7f);
+        hits = Physics2D.RaycastAll(start,new Vector3(1f,1f,0), 7f,bitMask);
         Debug.DrawLine(start, start + new Vector3(1f, 1f, 0) * 7, Color.blue);
         SensorBuffer[1] = 0f;
         foreach (var hit in hits)
         {
-            if (hit.collider.CompareTag("Enemy"))
             { SensorBuffer[1] = 1f; break; }
         }
-
 
         return;
         string inputs = string.Join(" | ", SensorBuffer);
