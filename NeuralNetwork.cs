@@ -233,3 +233,9 @@ public class NeuralNetwork
         }
     }
 }
+public enum MutationStrategy
+{
+    best,
+    Strategy1,
+    Strategy2
+}

@@ -30,11 +30,13 @@ public class TrainerAgent : MonoBehaviour
     public GameObject AIModel;
     [Tooltip("Insert the path of the brain")] public string BrainModel;
     [Space(20)]
+    private bool fastTraining = false;
     //Some things must be modified in order to efficiently use it:
     // 1. in EndEpisode() -> UpdateTextFile only if this is enabled
-    // 2. on ResetEpisodeTo(0,!fastTraining) calls -> Do not UpdateTextFile because it doesn t matter(the network var is compared at the end)
+    // 2. on ResetEpisodeTo(0,!fastTraining) calls -> Do not UpdateTextFile because it doesn t matter(the network var is compared at the end) HERE WAS CHANGED
     //[SerializeField, Tooltip("Enabling this option the trainer will not Overwrite AI's File after each Episode")] bool fastTraining = true;
     //INSERT MUTATION POWER -> or some sort of mutation Strategy
+
     [Tooltip("All files in /Neural_Networks/ will be deleted at the Start of a new Session.\n " +
     "This helps with Folder overflowing.")]public bool removeOldLogs = true;
     private string bestBrainModel = "Assets/StreamingAssets/Best_Neural_Network/BestNeuralNetwork.txt";
@@ -154,7 +156,7 @@ public class TrainerAgent : MonoBehaviour
         {
             var controller = teamArray[i].controller;
             controller.CreateNeuralNetwork(true, controller.GetLayersFormat(), brainModelContents);
-            controller.ResetFitnessTo(0f, true);
+            controller.ResetFitnessTo(0f, !fastTraining);
             controller.behaviour = BehaviourType.Learning;
 
             teamArray[i].agent.transform.position = startingPositions[i];
@@ -195,9 +197,17 @@ public class TrainerAgent : MonoBehaviour
         else
         {
             yield return null;
-            StartCoroutine(Training());
+            try
+            {
+                StartCoroutine(Training());
+            }
+            catch
+            {
+                maxStep = currentStep - 1;
+                Debug.LogError("Training Session has finnished prematurely due to Stack Overflow. You can stop your Training Now, and we will set your maxStep for your next session.");
+            }
         }
-        yield return null;
+        yield return null;//This is good to be here
     }
     void StopTraining()
     {
@@ -228,7 +238,7 @@ public class TrainerAgent : MonoBehaviour
     protected virtual void ResetEpisode()
     {
         environmentCanGo = false;
-        UpdateStatisticsDisplay();
+        
         //Update fitnesses in Array
         for (int i = 0; i < teamArray.Length; i++)
         {
@@ -254,12 +264,7 @@ public class TrainerAgent : MonoBehaviour
                     break;
 
             }
-            //Reset fitness to 0 in next training steps
-            for (int i = 0; i < teamArray.Length; i++)
-            {
-                teamArray[i].fitness = 0f;
-            }
-
+            ResetFitnessEverywhere();
         }
 
         //Reset vars
@@ -280,8 +285,9 @@ public class TrainerAgent : MonoBehaviour
 
         StringBuilder statData = new StringBuilder();
         statData.AppendLine("<b>Step: " + currentStep + "\n | Goal: " + bestFitness + "</b>");
-        foreach (AI item in teamArray)
+        for(int i = teamArray.Length-1; i >= 0; --i)
         {
+            AI item = teamArray[i];
             StringBuilder line = new StringBuilder();
 
             //Try COLORIZE
@@ -310,11 +316,6 @@ public class TrainerAgent : MonoBehaviour
             line.Append(" | Fitness: ");
             line.Append(item.controller.currentNNFitness);
 
-
-            
-                    
-
-
             line.Append("\n");
             statData.AppendLine(line.ToString());
         }
@@ -325,6 +326,7 @@ public class TrainerAgent : MonoBehaviour
     //-------------------------------------TRAINING STRATEGIES-------------------------//
     private void NextGeneration1()
     {
+        UpdateStatisticsDisplay();
         //Find Best AI and it's fitness
         float bestFitInThisGen = float.MinValue;
         int bestAiIndex = -1;
@@ -359,7 +361,7 @@ public class TrainerAgent : MonoBehaviour
             var controller = item.controller;
             controller.CopyNetworkFrom(bestBrainModel);
             controller.SetNetworkFromFile(item.controller.path, ref item.controller.network);
-            controller.ResetFitnessTo(0f, true);
+            controller.ResetFitnessTo(0f, !fastTraining);
             controller.MutateHisBrain();
         }
     }
@@ -367,7 +369,7 @@ public class TrainerAgent : MonoBehaviour
     {
 
         SortAIsByFitness(teamArray);
-
+        UpdateStatisticsDisplay();
         //Verification
         string str = "Step: " + currentStep + " TEAM: <color=red>";
         for (int i = 0; i < teamArray.Length; i++)
@@ -415,35 +417,23 @@ public class TrainerAgent : MonoBehaviour
                 controller.SetNetworkFromFile(controller.path, ref controller.network);
                 controller.MutateHisBrain();
             }
-
-        //Reset Their Fitness in the neural network and also update his file
-        for (int i = 0; i < teamArray.Length; i++)
-        {
-            teamArray[i].controller.ResetFitnessTo(0f, true);
-        }
-
-        ///SUMMARY
-        //Find best Half Ai's
-        //Save their Brains in Best_Neural_Networks
-        //Assign the brains two times for each AI, but mutate one of the AI's -> this way we keep a version of the old brain if the new mutated one is shit
-        //Reset the Fitness to all AI's
     }
     private void NextGeneration3()
     {
 
         SortAIsByFitness(teamArray);
-
+        UpdateStatisticsDisplay();
         //Verification
-        string str = "";
+        string str = "Step: " + currentStep + " TEAM: <color=red>";
         for (int i = 0; i < teamArray.Length; i++)
         {
             if (i == teamArray.Length / 2)
-                str += "<color=red>";
+                str += " |</color><color=#4db8ff>";
             str += " | " + teamArray[i].fitness.ToString();
 
         }
-        str += "</color>";
-        Debug.Log("AfterSort: " + str + " |");
+        str += " |</color>";
+
 
         float thisGenerationBestFitness = teamArray[teamArray.Length - 1].fitness;
         if (thisGenerationBestFitness <= this.bestFitness)
@@ -460,12 +450,17 @@ public class TrainerAgent : MonoBehaviour
             catch { Debug.Log("Couldn't Update BestNeuralNetwork.txt"); }
         }
 
-        //Strategy3 --> Assign to first 2 Guys The Best brain and make the reproduction from the rest
-
-        //GetHalfBestBrains and assign to worst guys
+        //Strategy3 --> 20% of stupid guys get the best brain model
+        int twentyPerCent;
+        if (teamArray.Length < 10)
+            twentyPerCent = 1;
+        else
+            twentyPerCent = (int)(teamArray.Length * (float)20f / 100f);
+        //twentyPerCent represents the number of member that are inside 20% 
+        //if there are less than 10 members, only 1 guy will use the brain model always
         int halfCount = teamArray.Length / 2;
         if (teamArray.Length % 2 == 0)//If Even team Size
-            for (int i = 0; i < halfCount; i++)
+            for (int i = twentyPerCent; i < halfCount; i++)
             {
                 var controller = teamArray[i].controller;
                 controller.CopyNetworkFrom(teamArray[i + halfCount].controller.path);//Copy Brain From AI with his index+halfCount
@@ -473,27 +468,22 @@ public class TrainerAgent : MonoBehaviour
                 controller.MutateHisBrain();
             }
         else
-            for (int i = 0; i <= halfCount; i++)
+            for (int i = twentyPerCent; i <= halfCount; i++)
             {
                 var controller = teamArray[i].controller;
                 controller.CopyNetworkFrom(teamArray[i + halfCount].controller.path);//Copy Brain From AI with his index+halfCount
                 controller.SetNetworkFromFile(controller.path, ref controller.network);
                 controller.MutateHisBrain();
             }
-
-        //Reset Their Fitness in the neural network and also update his file
-        for (int i = 0; i < teamArray.Length; i++)
+        //now copy best brain over first 20%
+        for (int i = 0; i < twentyPerCent; i++)
         {
-            teamArray[i].controller.ResetFitnessTo(0f, true);
+            var controller = teamArray[i].controller;
+            controller.CopyNetworkFrom(bestBrainModel);
+            controller.SetNetworkFromFile(controller.path, ref controller.network);
+            controller.MutateHisBrain();
         }
-
-        ///SUMMARY
-        //Find best Half Ai's
-        //Save their Brains in Best_Neural_Networks
-        //Assign the brains two times for each AI, but mutate one of the AI's -> this way we keep a version of the old brain if the new mutated one is shit
-        //Reset the Fitness to all AI's
     }
-
     private void SortAIsByFitness(AI[] tm)
     {
         //InsertionSort
@@ -507,6 +497,19 @@ public class TrainerAgent : MonoBehaviour
                 j--;
             }
             tm[j + 1] = key;
+        }
+    }
+    private void ResetFitnessEverywhere()
+    {
+        //Reset Their Fitness in the neural network and also update his file
+        for (int i = 0; i < teamArray.Length; i++)
+        {
+            teamArray[i].controller.ResetFitnessTo(0f, !fastTraining);
+        }
+        //Reset fitness to 0 in next training steps
+        for (int i = 0; i < teamArray.Length; i++)
+        {
+            teamArray[i].fitness = 0f;
         }
     }
     
@@ -554,11 +557,13 @@ public class TrainerAgent : MonoBehaviour
         }
         if(firstValue <= 15)
             hexCode.Append("0");
+        if (firstValue == 0)//Case 0, we need to return 00
+            hexCode.Append("0");
+
         string hex = hexCode.ToString();
         ReverseString(ref hex);
         return hex;
     }
-
     static string GetHexDigFromIntDig(int value)
     {
         if (value < 0 || value > 15)
@@ -600,7 +605,7 @@ public enum TrainingStrategy
     Strategy1,
     [Tooltip("Half Best AI Reproduce + Only copies get Mutated")]
     Strategy2,
-    [Tooltip("10% get Best Brain | 90% Half Best AI Reproduce + Only copies get Mutated")]
+    [Tooltip("20% get Best Brain | 80% Half Best AI Reproduce + Only copies get Mutated")]
     Strategy3,
 
 }
