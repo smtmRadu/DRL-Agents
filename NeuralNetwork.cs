@@ -5,11 +5,13 @@ using System;
 
 public class NeuralNetwork
 {
+    static MutationStrategy mutationStrategy = MutationStrategy.Strategy1;
     protected int[] layers;
     protected float[][] neurons;
     protected float[][][] weights;
     protected float fitness;
     static private float bias = 0;
+    
     public NeuralNetwork(int[] layers)
     {
         InitializeLayers(layers);
@@ -116,9 +118,18 @@ public class NeuralNetwork
         for (int i = 0; i < weights.Length; i++)
             for (int j = 0; j < weights[i].Length; j++)
                 for (int k = 0; k < weights[i][j].Length; k++)
-                    MutateWeightType1(ref weights[i][j][k]);
+                    MutateWeight(ref weights[i][j][k]);
     }
-    protected void MutateWeightType1(ref float weight)
+    protected void MutateWeight(ref float weight)
+    {
+        if (mutationStrategy == MutationStrategy.Strategy1)
+            MutateByStrategy1(ref weight);
+        else if (mutationStrategy == MutationStrategy.Strategy2)
+            MutateByStrategy2(ref weight);
+
+
+    }
+    void MutateByStrategy1(ref float weight)
     {
         float randNum = UnityEngine.Random.Range(0f, 10f);
 
@@ -140,16 +151,16 @@ public class NeuralNetwork
             float factor = UnityEngine.Random.Range(0f, 1f);
             weight *= factor;
         }
-        else {
+        else
+        {
         }//20% chance of NO MUTATION
 
-
-
-
     }
-    protected void MutateWeightType2(ref float weight)
+    void MutateByStrategy2(ref float weight)
     {
-
+        //In this Strategy the weight is mutated by a value from 0->.5f; ///SMALL MUTATION
+        float randNum = UnityEngine.Random.Range(-.5f, .5f);
+        weight += randNum;
     }
 
 
@@ -235,7 +246,6 @@ public class NeuralNetwork
 }
 public enum MutationStrategy
 {
-    best,
     Strategy1,
     Strategy2
 }
