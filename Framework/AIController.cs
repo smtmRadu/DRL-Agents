@@ -40,36 +40,23 @@ public class AIController: Agent
 
         base.UpdateInputs(out SensorBuffer);
 
-        Vector3 start = transform.position - new Vector3(0f, 1f, 0f);
-        RaycastHit2D[] hits = Physics2D.RaycastAll(start, transform.right, 6f, bitMask);
-        Debug.DrawLine(start, start + new Vector3(1f, 0f, 0f) * 6, Color.red);
-        SensorBuffer[0] = 0f;
+        //SensorBuffer has a length of it's neural network inputs
+        //Insert semnificative inputs for your AI if you want good results
 
-        foreach (var hit in hits)
-        {
-            { SensorBuffer[0] = 1f; break; }
-        }
-
-
-
-        start = transform.position;
-        hits = Physics2D.RaycastAll(start, new Vector3(1f, 1f, 0), 7f, bitMask);
-        Debug.DrawLine(start, start + new Vector3(1f, 1f, 0) * 7, Color.blue);
-        SensorBuffer[1] = 0f;
-        foreach (var hit in hits)
-        {
-            { SensorBuffer[1] = 1f; break; }
-        }
-
-        return;
-        string inputs = string.Join(" | ", SensorBuffer);
-        Debug.Log(inputs);
+        ///EXAMPLE
+        ///SensorBuffer[0] = transform.position.x
+        ///SensorBuffer[1] = transform.position.y
+        ///SensorBuffer[2] = target.transform.position.x
+        ///SensorBuffer[3] = target.transform.position.y
+        ///SensorBuffer[4] = You can assign a value of 1 if a RaycastHit != null
+        ///SensorBuffer[5] = RaycastHit collision collider object ID (or some specific value) to know how to behave when he meets it
+        ///SensorBuffer[6] = level Index ( if you are planning to train your AI's for different Environments
     }
     protected override bool OnOutputsReceived(float[] ActionBuffer)
     {
         if (!base.OnOutputsReceived(ActionBuffer))
             return false;
-        //ActionBuffer has a lenght of your neural outputs with values between [0f,1f]
+        //ActionBuffer has a length of it's neural outputs with values between [0f,1f]
         //You can use the outputs to make actions similar to Heuristic
 
         ///EXAMPLE
