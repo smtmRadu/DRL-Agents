@@ -9,7 +9,7 @@ using System.Linq;
 public class Agent : MonoBehaviour
 {
     [Header("===== Agent Properties =====")]
-    public BehaviourType behaviour = BehaviourType.Default;
+    public BehaviourType behaviour = BehaviourType.Static;
     [SerializeField, Range(1, 15), Tooltip("The number of Inputs that the Agent will receive (-1,1)")] private int spaceSize = 1;
     [SerializeField, Range(1, 15), Tooltip("The number of Outputs that the Agent will return (-1,1)")] private int actionSize = 1;
     public NeuralNetwork network = null;
