@@ -109,6 +109,8 @@ public class TrainerAgent : MonoBehaviour
     {
         if (!Directory.Exists(Application.streamingAssetsPath + "/Best_Neural_Network/"))
             Directory.CreateDirectory(Application.streamingAssetsPath + "/Best_Neural_Network/");
+        if (!Directory.Exists(Application.streamingAssetsPath + "/Neural_Networks/"))
+            Directory.CreateDirectory(Application.streamingAssetsPath + "/Neural_Networks/");
         if (!File.Exists(bestBrainModel))
             File.Create(bestBrainModel);
 
