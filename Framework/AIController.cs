@@ -47,14 +47,21 @@ public class AIController : Agent
         //SensorBuffer has a length of it's neural network inputs
         //Insert semnificative inputs for your AI if you want good results
         
-        ///EXAMPLE
-        ///SensorBuffer[0] = transform.position.x
-        ///SensorBuffer[1] = transform.position.y
-        ///SensorBuffer[2] = target.transform.position.x
-        ///SensorBuffer[3] = target.transform.position.y
-        ///SensorBuffer[4] = You can assign a value of 1 if a RaycastHit != null
-        ///SensorBuffer[5] = RaycastHit collision collider object ID (or some specific value) to know how to behave when he meets it
-        ///SensorBuffer[6] = level Index ( if you are planning to train your AI's for different Environments
+        ///EXAMPLE: Turn ON ErrorPause in UnityConsole
+        ///try
+        ///{
+        ///     SensorBuffer[0] = transform.position.x
+        ///     SensorBuffer[1] = transform.position.y
+        ///     SensorBuffer[2] = target.transform.position.x
+        ///     SensorBuffer[3] = target.transform.position.y
+        ///     SensorBuffer[4] = You can assign a value of 1 if a RaycastHit != null
+        ///     SensorBuffer[5] = RaycastHit collision collider object ID (or some specific value) to know how to behave when he meets it
+        ///     SensorBuffer[6] = level Index ( if you are planning to train your AI's for different Environments
+        ///}
+        ///catch(System.Exception exception) 
+        ///{
+        ///    Debug.LogError(exception);
+        ///}
     }
     protected override bool OnOutputsReceived(float[] ActionBuffer)
     {
