@@ -67,7 +67,9 @@ public class Agent : MonoBehaviour
             Learning(true);
         else if (behaviour == BehaviourType.Heuristic)
             Heuristic();
-        else 
+        else if (behaviour == BehaviourType.Static)
+            return;
+        else
             Default();
 
         
