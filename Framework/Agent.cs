@@ -43,8 +43,12 @@ public class Agent : MonoBehaviour
     protected virtual void Awake()
     {
         UpdateLayersFormat();
-        if (path!=null && path != "")
-            SetNetworkFromFile(path, ref this.network);
+         if (path != null && path != "")
+        {
+            if (File.Exists(path))
+                SetNetworkFromFile(path, ref this.network);
+            else Debug.LogError("The Brain Model File loaded on this AI doesn't exist, load a valid one! (probably was deleted in the process)");
+        }
     }
     //---------------------BASE FUNCTIONS------------------//
     protected virtual void Update()
