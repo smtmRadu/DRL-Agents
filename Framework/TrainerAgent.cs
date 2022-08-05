@@ -38,7 +38,7 @@ public class TrainerAgent : MonoBehaviour
     //INSERT MUTATION POWER -> or some sort of mutation Strategy
 
     [Tooltip("All files in /Neural_Networks/ will be deleted at the Start of a new Session.\n " +
-    "This helps with Folder overflowing.")]public bool removeOldLogs = true;
+    "This helps with Folder overflowing.")]public bool removeOldLogs = false;
     private string bestBrainModel = "Assets/StreamingAssets/Best_Neural_Network/BestNeuralNetwork.txt";
     private string bestHalfBrainModelsFolder = "Assets/StreamingAssets/Best_Neural_Networks/";
     private float bestFitness;
