@@ -31,7 +31,7 @@ public class AIController : Agent
     protected override void Heuristic()
     {
         ///Implement Keyboard Input for your player.
-
+        ///Heuristic() is called in Update(), so use Time.deltaTime in your moving functions
         ///EXAMPLE: 
         ///      if(Input.GetKey(KeyCode.A))
         ///         rb.AddForce(Vector2.left * speed * Time.deltaTime)
@@ -46,7 +46,7 @@ public class AIController : Agent
 
         //SensorBuffer has a length of it's neural network inputs
         //Insert semnificative inputs for your AI if you want good results
-
+        
         ///EXAMPLE
         ///SensorBuffer[0] = transform.position.x
         ///SensorBuffer[1] = transform.position.y
@@ -62,7 +62,7 @@ public class AIController : Agent
             return false;
         //ActionBuffer has a length of it's neural outputs with values between [0f,1f]
         //You can use the outputs to make actions similar to Heuristic
-
+        //OnOuputsReveived() is called in Update(), so use Time.deltaTime in your moving functions
         ///EXAMPLE
         //////     OUTPUT 1:
         ///         if(ActionBuffer[0] < .5f)
