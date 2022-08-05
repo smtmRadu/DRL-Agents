@@ -309,7 +309,15 @@ public class Agent : MonoBehaviour
     private void Default()
     {
         if (network == null)
-            Heuristic();
+        {
+            try
+            { Heuristic(); }
+            catch
+            {
+                //Because Heuristic() was not implemented the Object will be Static
+            }
+        
+        }
         else
             Learning(false);
     }
