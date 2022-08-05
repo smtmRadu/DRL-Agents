@@ -91,8 +91,7 @@ public class AIController : Agent
         //Do other stuff here if you need
 
         if (behaviour != BehaviourType.Learning || network == null)
-            return;
-
+            {return;Debug.Log("Your AI's cannot learn due to invalid network or behaviour status");}     
         ///Mostly your Agents will Get Reward and Finnish an Episode by colliding with objects
 
         ///EXAMPLE
