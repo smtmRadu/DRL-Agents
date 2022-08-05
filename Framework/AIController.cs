@@ -9,7 +9,7 @@ public class AIController : Agent
     /// Also aditional variables to control components like RigidBody or SpriteRenderer
     /// EXAMPLE:
     float speed = 1f;
-
+    ///Be carefull, you cannot load the transform of a Goal Object in a prefab, so you better assign you goal variable in Awake()
 
 
     protected override void Awake()
