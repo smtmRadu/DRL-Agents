@@ -361,7 +361,7 @@ public class Agent : MonoBehaviour
     }
     protected virtual bool OnOutputsReceived(float[] ActionBuffer) // Inference ONLY
     {
-        if (this.behaviour != BehaviourType.Learning)
+        if (this.behaviour == BehaviourType.Static || this.behaviour == BehaviourType.Heuristic)
             return false;
         return true;
     }
