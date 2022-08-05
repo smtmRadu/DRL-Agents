@@ -2,12 +2,16 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AIController: Agent
+public class AIController : Agent
 {
     [Space, Header("===== AI Properties =====")]
-
     ///Create variables like speed, jumpPower, rotation etc.
     /// Also aditional variables to control components like RigidBody or SpriteRenderer
+    /// EXAMPLE:
+    float speed = 1f;
+
+
+
     protected override void Awake()
     {
         base.Awake();
@@ -19,9 +23,9 @@ public class AIController: Agent
         base.Update();
         if (behaviour == BehaviourType.Heuristic)
             Heuristic();
-        
+
         //Do whatever you want here
-         
+
     }
 
     protected override void Heuristic()
@@ -74,12 +78,12 @@ public class AIController: Agent
         //Do not modify this return
         return true;
     }
-    
+
     public void OnCollisionEnter2D(Collision2D collision)
     {
         //Do other stuff here if you need
 
-        if (behaviour != BehaviourType.Leaning || networkStatus == null)
+        if (behaviour != BehaviourType.Learning || network == null)
             return;
 
         ///Mostly your Agents will Get Reward and Finnish an Episode by colliding with objects

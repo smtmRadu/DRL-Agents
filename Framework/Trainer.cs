@@ -15,7 +15,7 @@ public class Trainer : TrainerAgent
 
     protected override void Awake()
     {
-        base.Awake(); 
+        base.Awake();
         startingPositions = new Vector3[teamSize];
 
         ///Initialize <var name="startingPositions"></var> elements. They are used when Episode resets. 
@@ -26,7 +26,7 @@ public class Trainer : TrainerAgent
         }
 
         //We keep the starting position of every object in the Training Environment, so keep this for as it is
-        for (int i = 0; i < environmentObjects.Length; i++)
+        for (int i = 0; i < environmentObjects.Count; i++)
         {
             environmentObjectsPositions.Add(environmentObjects[i].transform);
         }
@@ -47,9 +47,11 @@ public class Trainer : TrainerAgent
         //AI's positions are already reseted in base.ResetEpisode()
         base.ResetEpisode();
         //Reset environment Position
-        for (int i = 0; i < environmentObjects.Length; i++)
+        for (int i = 0; i < environmentObjects.Count; i++)
         {
-            environmentObjects[i].transform = environmentObjectsPositions[i];
+            environmentObjects[i].transform.position = environmentObjectsPositions[i].position;
+            environmentObjects[i].transform.rotation = environmentObjectsPositions[i].rotation;
+            environmentObjects[i].transform.localScale = environmentObjectsPositions[i].localScale;
         }
         //You can make changes of different things after each Episode
 
