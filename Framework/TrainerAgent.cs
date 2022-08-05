@@ -145,6 +145,10 @@ public class TrainerAgent : MonoBehaviour
         }
 
         //Check Brain Model
+        if (!File.Exists(BrainModel))
+        { Debug.LogError("Brain Model Path loaded on Trainer is not valid, please insert a valid one! (probably was deleted in the process)");
+            return;
+        }
         string[] brainModelContents = File.ReadAllLines(BrainModel);
         if (brainModelContents.Length == 0)
         {
