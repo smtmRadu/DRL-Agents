@@ -21,7 +21,8 @@ public class Trainer : TrainerAgent
         ///Initialize <var name="startingPositions"></var> elements. They are used when Episode resets. 
         for (int i = 0; i < startingPositions.Length; i++)
         {
-            //EXAMPLE: startingPositions[i] = Vector3.zero;
+            //EXAMPLE: 
+            startingPositions[i] = Vector3.zero;
             //NECCESARRY +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         }
 
@@ -36,6 +37,12 @@ public class Trainer : TrainerAgent
     {
         base.SetupTeam();
         //You can assign different colors to your Agents 
+        //EXAMPLE:
+        //foreach (AI item in teamArray)
+        //{
+        //   item.agent.GetComponent<SpriteRenderer>().color = new Color(Random.value,Random.value, Random.value);
+        //}
+        //Agents are kept in an array called teamArray of type AI (check it in TrainerAgentScript if you want);
     }
     protected override void EnvironmentAction()
     {
