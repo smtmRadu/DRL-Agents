@@ -46,8 +46,8 @@ public class TrainerAgent : MonoBehaviour
     [Space,SerializeField] TMPro.TMP_Text statisticsDisplay = null;
 
     [Space, Header("=== Team Settings ===")]
-    [Range(2, 100)] public int teamSize = 1;//IT cannot be 1 because there cannot be reproduction
-    [Range(1, 5), Tooltip("Frequency for calling NextGeneration")] public int evolutionStep = 5;
+    [Range(2, 100)] public int teamSize = 5;//IT cannot be 1 because there cannot be reproduction
+    [Range(1, 5), Tooltip("Frequency for calling NextGeneration")] public int evolutionStep = 1;
     [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxStep = 10;
     public TrainingStrategy trainingStrategy = TrainingStrategy.Best;
 
