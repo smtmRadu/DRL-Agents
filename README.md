@@ -2,7 +2,9 @@
 Set of C# files that can be used to train the AI in Unity Engine.
 Use Latest version Framework folder ONLY.
 ![Image](NNPNG.png)
-The Neural Network Class contains the code for the implementation of a ANN that uses EvolutionaryTraining -> random Mutation per Weight (probably in the future i will make an option for backpropagation).
+The Neural Network Class contains the code for instantiating a Artificial Neural Network based on Evolutionary Training with random mutations.
 
-The Documentation was not wrote yet, due to improvements that should be applied in the training process for more variety.
-Task: Add Limited Episode Time.
+The use of this framework is done by implementing a training strategy, strictly said by overriding some methods where you send observations (inputs) and receive actions (outputs).
+
+The Documentation was not wrote yet due to performance leaks and lack of substantial testing.
+
