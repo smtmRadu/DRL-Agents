@@ -6,5 +6,5 @@ The Neural Network Class contains the code for instantiating a Artificial Neural
 
 The use of this framework is done by implementing a training strategy, strictly said by overriding some methods where you send observations (inputs) and receive actions (outputs) and creating a suitable, stable and well designed training environment.
 
-The Documentation was not wrote yet due to performance leaks and lack of substantial testing.
+The Documentation was not wrote yet due to lack of substantial testing. Performance leaks where solved starting from the version 2.0.
 
