@@ -147,7 +147,7 @@ namespace MLFramework
         {
             for (int i = 0; i < axons.Length; i++)
             {
-                axons[i] = GetRandomNumberFromNormalDistribution();
+                axons[i] = GetNumberFromStandardNormal();
             }
         }
 
@@ -274,9 +274,15 @@ namespace MLFramework
             return (float)(1 / System.Math.Sqrt((2f * System.Math.PI * Mathf.Pow(sigma, 2f)))
                                * Mathf.Exp(-1f / 2f * Mathf.Pow((x - mu) / sigma, 2f)));
         }
-        static float GetRandomNumberFromNormalDistribution()
+        static float GetNumberFromStandardNormal()
         {
-            return UnityEngine.Random.Range(-1f, 1f);
+            //sigma = 1f
+            //mu = 0f
+            float ranNum = Random.Range(0f, 0.3989f);
+            if (Random.value > .5f)
+                return (float)Mathf.Sqrt(-Mathf.Log(2f * Mathf.PI * Mathf.Pow(ranNum, 2f)));
+            else return (float)-Mathf.Sqrt(-Mathf.Log(2f * Mathf.PI * Mathf.Pow(ranNum, 2f)));
+            
         }
 
         private void ConvertStrArrToIntArr(string[] str, ref int[] arr)
