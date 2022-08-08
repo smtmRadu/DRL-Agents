@@ -274,10 +274,14 @@ namespace MLFramework
             return (float)(1 / System.Math.Sqrt((2f * System.Math.PI * Mathf.Pow(sigma, 2f)))
                                * Mathf.Exp(-1f / 2f * Mathf.Pow((x - mu) / sigma, 2f)));
         }
-        static float GetNumberFromStandardNormal(float l = 0.15915f, float k = 1.061f, float z = 0.3373f)
+        static float GetNumberFromStandardNormal(float l = 0.15915f, float k = 2f, float z = 0.3373f)
         {
             float x = Random.value;
-            return (float)Mathf.Pow(-Mathf.Log(2f * l * Mathf.PI * Mathf.Pow(x, 2f) * z), 1f / k);
+            float sign = Random.value;
+            if (sign > .5f)
+                return (float)Mathf.Pow(-Mathf.Log(2f * l * Mathf.PI * Mathf.Pow(x, 2f)) * z, 1f / k);
+            else
+                return (float)-Mathf.Pow(-Mathf.Log(2f * l * Mathf.PI * Mathf.Pow(x, 2f)) * z, 1f / k);
 
 
         }
