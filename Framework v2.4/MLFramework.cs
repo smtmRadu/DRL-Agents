@@ -353,14 +353,14 @@ namespace MLFramework
         [Header("===== Agent Properties =====")]
         public BehaviourType behaviour = BehaviourType.Static;
         [SerializeField, Range(1, 50), Tooltip("The number of Inputs that the Agent will receive [-1,1]")] private int spaceSize = 2;
-        [SerializeField, Range(1, 25), Tooltip("The number of Outputs that the Agent will return [ 0,1]")] private int actionSize = 2;
+        [SerializeField, Range(1, 15), Tooltip("The number of Outputs that the Agent will return [ 0,1]")] private int actionSize = 2;
         public bool SaveBrain = false;
         public NeuralNetwork network = null;
 
         [Space, Header("===== Network Properties =====")]
         [Tooltip("If path != null -> Has a model assigned + if(networkStatus) -> The model is also loaded")] public string path = null;
-        [SerializeField, Range(1, 50), Tooltip("The number of Hidden Layers")] private int deep = 2;
-        [SerializeField, Range(1, 50), Tooltip("The number of Neurons per Hidden Layer." + "[Usually you can set it as (spaceSize + actionSize)]")] private int neuronsPerLayer = 4;
+        [SerializeField, Range(1, 100), Tooltip("The number of Hidden Layers")] private int deep = 5;
+        [SerializeField, Range(1, 100), Tooltip("The number of Neurons per Hidden Layer." + "[Usually you can set it as (spaceSize + actionSize)]")] private int neuronsPerLayer = 5;
 
         protected virtual void Update()
         {
@@ -617,7 +617,11 @@ namespace MLFramework
                 var script = team[i].script;
                 script.network = new NeuralNetwork(brainModelPath);
                 script.SetFitnessTo(0f);
-                script.network.MutateWeights();
+
+                //Mutate Half Of them in the beggining
+                if (i % 2 == 0)
+                    script.network.MutateWeights();
+
                 script.behaviour = BehaviourType.Learning;
 
             }
@@ -926,7 +930,56 @@ namespace MLFramework
         }
         void NextGenStrategy3()
         {
+            /// <summary>
+            /// Best AI is reproduced, all of his clones are mutated
+            /// </summary>
+            SortTeam();//The sort was made in ascending order
+            //BUILD STATISTIC
+            StringBuilder statistic = new StringBuilder();
+            statistic.Append("Step: ");
+            statistic.Append(currentStep);
 
+            //Place best AI in yellow
+            statistic.Append(" TEAM: <color=#e6e600>");
+            statistic.Append(" | ");
+            statistic.Append(team[team.Length - 1].fitness);
+
+            //Add rest of Ai's with grey
+            statistic.Append(" |</color><color=#4db8ff>");
+            for (int i = team.Length - 2; i >= 0; i--)
+            {
+                statistic.Append(" | ");
+                statistic.Append(team[i].fitness);
+            }
+            statistic.Append(" |</color>");
+
+            float thisGenerationBestFitness = team[team.Length - 1].fitness;
+            if (thisGenerationBestFitness < this.modelNet.GetFitness())
+            {
+                statistic.Append("\n                    Evolution - NO  | This Gen MaxFitness: ");
+                statistic.Append(thisGenerationBestFitness);
+                statistic.Append(" < ");
+                statistic.Append(this.modelNet.GetFitness());
+            }
+            else
+            {
+                statistic.Append("\n                    Evolution - YES | This Gen MaxFitness: ");
+                statistic.Append(thisGenerationBestFitness);
+                statistic.Append(" > ");
+                statistic.Append(this.modelNet.GetFitness());
+                //update ModelBrain
+                team[team.Length - 1].script.WriteBrain(brainModelPath);
+                modelNet = new NeuralNetwork(brainModelPath);
+            }
+            Debug.Log(statistic.ToString());
+
+            NeuralNetwork bestAINet = team[team.Length - 1].script.network;
+            for (int i = 0; i < team.Length - 1; i++)
+            {
+                var script = team[i].script;
+                script.network = new NeuralNetwork(bestAINet);
+                script.network.MutateWeights();
+            }
         }
         void SortTeam()
         {//InsertionSort
@@ -1076,26 +1129,24 @@ namespace MLFramework
                 string path = sbPath.ToString();
                 //Make a copy of it's network
                 NeuralNetwork net = new NeuralNetwork(team[i].script.network);
-                try
-                {
-                    File.WriteAllText(path, string.Empty);
-                    File.AppendAllText(path, string.Join(",", net.GetLayers()));
-                    File.AppendAllText(path, "\n");
 
-                    float[][][] weights = net.GetWeights();
-                    foreach (float[][] layWeights in weights)
+                File.WriteAllText(path, string.Empty);
+                File.AppendAllText(path, string.Join(",", net.GetLayers()));
+                File.AppendAllText(path, "\n");
+
+                float[][][] weights = net.GetWeights();
+                foreach (float[][] layWeights in weights)
+                {
+                    for (int j = 0; j < layWeights.Length; j++)
                     {
-                        for (int j = 0; j < layWeights.Length; j++)
-                        {
-                            File.AppendAllText(path, string.Join(",", layWeights[i]));
-                            if (j < layWeights.Length - 1)
-                                File.AppendAllText(path, ",");
-                        }
-                        File.AppendAllText(path, "\n");
+                        File.AppendAllText(path, string.Join(",", layWeights[j]));
+                        if (j < layWeights.Length - 1)
+                            File.AppendAllText(path, ",");
                     }
-                    File.AppendAllText(path, net.GetFitness().ToString());
+                    File.AppendAllText(path, "\n");
                 }
-                catch { }
+                File.AppendAllText(path, net.GetFitness().ToString());
+
                 //Only some of them can be saved
             }
 
