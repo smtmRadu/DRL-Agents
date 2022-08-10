@@ -526,7 +526,7 @@ namespace MLFramework
         public GameObject Environment;
         public TMPro.TMP_Text statisticsDisplay = null;
         [Tooltip("Turning this ON may decrease performance")]public bool sortedDisplay = false;
-        [Tooltip("Saves all networks of the team in /Saves/ folder")public bool SaveBrains = false;
+        [Tooltip("Save networks of best sqrt(team) in /Saves/ folder before moving to the nextGen")public bool SaveBrains = false;
 
         [Space, Header("=== Training Settings ===")]
         [Range(2, 300)] public int teamSize = 5;//IT cannot be 1 because there cannot be reproduction
@@ -561,7 +561,6 @@ namespace MLFramework
         }
         protected virtual void Update()
         {
-            BUTTONSaveBrains();
             if (startTraining)
                 Train();
 
@@ -701,6 +700,7 @@ namespace MLFramework
             //Next Gen
             if (currentStep % episodesPerEvolution == 0)
             {
+                SaveBrains();
                 switch (trainingStrategy)
                 {
                     case TrainingStrategy.Strategy1:
@@ -989,18 +989,17 @@ namespace MLFramework
             }
         }
         //-------------------------------------------------BUTTONS------------------------------------------//
-        void BUTTONSaveBrains()
+        void SaveBrains()
         {
-            //They will be saved in a Saves Directory descending by their fitness, so the best brain will be first
-            if (SaveBrains == false)
-                return;
             SaveBrains = false;
 
             string saveDir = Application.streamingAssetsPath + "/Saves/";
             if (!Directory.Exists(saveDir)) 
                 Directory.CreateDirectory(saveDir);
 
-            for (int i = team.Length-1; i >= 0; i--)
+            int howMany = team.Length - Mathf.sqrt(team.Length);
+            SortTeam();
+            for (int i = team.Length-1; i >= howMany; i--)
             {
                 StringBuilder sbPath = new StringBuilder();
                 sbPath.Append(saveDir);
