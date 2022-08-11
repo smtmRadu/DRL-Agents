@@ -18,21 +18,20 @@ public class Trainer : TrainerBase
     }
     protected override void EnvironmentAction()
     {
-        //Add actions for your environment, this method is called in Update 
-        //Tip: use Time.deltaTime
+        //Add actions for your environment, this method is called in Update - Tip: use Time.deltaTime
     }
     protected override void OnEpisodeBegin()
     {
-
+        //Actions after Reseting Episode - Ex: Activate reward flags
     }
-    protected override void OnEpisodeEnd()
+    protected override void OnEpisodeEnd(ref AI ai)
     {
-        foreach (var ai in team)
-        {
-            if (ai.script.behaviour == BehaviourType.Learning)
-            {
-                //Add rewards to AI's that didn't ended their actions
-            }
-        }
+        //Modify all AI before Reseting Episode - Ex: Add postActions reward
+        // ai.agent - used to access the game object
+        // ai.script - used to acces Agent Script 
+        // ai.fitness - used to get it's current fitness
+
+        //To add reward even if Ai's action ended, use ai.script.AddFitness(value,true) [reward will be added even if AI behaviour becomes Static]
     }
+}
 }

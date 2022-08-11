@@ -415,31 +415,34 @@ namespace MLFramework
 
         }
 
-        protected void AddReward(float reward)
+        public void AddReward(float reward, bool evenIfEndedAction = false)
         {
-            if (behaviour == BehaviourType.Manual)
+            if (behaviour == BehaviourType.Manual || behaviour == BehaviourType.Self)
+                return;
+            if (evenIfEndedAction == false && behaviour == BehaviourType.Static)
                 return;
             if (network == null)
             {
                 Debug.LogError("Cannot add reward because neural network is null");
                 return;
             }
-            if (behaviour == BehaviourType.Learning)
-                network.AddFitness(reward);
+            network.AddFitness(reward);
         }
-        protected void SetReward(float reward)
+        public void SetReward(float reward, bool evenIfEndedAction = false)
         {
-            if (behaviour == BehaviourType.Manual)
+            if (behaviour == BehaviourType.Manual || behaviour == BehaviourType.Self)
+                return;
+            if (evenIfEndedAction == false && behaviour == BehaviourType.Static)
                 return;
             if (network == null)
             {
                 Debug.LogError("Cannot set reward because neural network is null");
                 return;
             }
-            if (behaviour == BehaviourType.Learning)
-                network.SetFitness(reward);
+
+            network.SetFitness(reward);
         }
-        protected void EndAction()
+        public void EndAction()
         {
             behaviour = BehaviourType.Static;
         }
@@ -676,9 +679,7 @@ namespace MLFramework
             timeLeft -= Time.deltaTime;
             EnvironmentAction();
 
-            //Update fitness in team array
-            for (int i = 0; i < team.Length; i++)
-                team[i].fitness = team[i].script.GetFitness();
+            UpdateFitnessInArray();
 
             if (AreAllDead() || timeLeft <= 0)
                 ResetEpisode();
@@ -706,7 +707,12 @@ namespace MLFramework
         }
         protected void ResetEpisode()
         {
-            OnEpisodeEnd();
+            for (int i = 0; i < team.Length; i++)
+            {
+                OnEpisodeEnd(ref team[i]);
+            }
+            UpdateFitnessInArray();
+
             timeLeft = maxTimePerEpisode;
             //Next Gen
             if (currentStep % episodesPerEvolution == 0)
@@ -764,12 +770,10 @@ namespace MLFramework
             /// 
             /// </summary>
         }
-        protected virtual void OnEpisodeEnd()
+        protected virtual void OnEpisodeEnd(ref AI ai)
         {
             ///<summary>
-            /// Is called at the beggining of ResetEpisode()
-            /// Can be used to Add rewards to AI's that are Still learning and are not static
-            /// 
+            ///Is called at the beggining of ResetEpisode()
             /// </summary>
         }
         void UpdateDisplay()
@@ -1123,6 +1127,12 @@ namespace MLFramework
                 team[i].script.SetFitnessTo(0f);
                 team[i].fitness = 0f;
             }
+        }
+        private void UpdateFitnessInArray()
+        {
+            //Update fitness in team array
+            for (int i = 0; i < team.Length; i++)
+                team[i].fitness = team[i].script.GetFitness();
         }
         //-------------------------------------------------BUTTONS------------------------------------------//
         void SaveBrains()

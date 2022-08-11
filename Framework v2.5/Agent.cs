@@ -4,22 +4,17 @@ using UnityEngine;
 using MLFramework;
 public class Agent : AgentBase
 {
-
-    private void Awake()
-    {
-
-    }
     protected override void Update()
     {
         base.Update();
     }
     protected override void Manual()
     {
-
+        //Implement a keyboard input for your AI - test only
     }
     protected override void CollectObservations(ref float[] SensorBuffer)
     {
-
+        //Fullfill SensorBuffer with observations
     }
     protected override void OnActionReceived(in float[] ActionBuffer)
     {
@@ -27,8 +22,10 @@ public class Agent : AgentBase
     }
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        //AddReward()
-        //EndAction()
-        //ResetEpisode()
+        //Usefull Methods:
+            //AddReward()
+            //SetReward()
+            //EndAction()
+            //GetReward()
     }
 }
