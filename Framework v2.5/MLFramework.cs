@@ -748,6 +748,7 @@ namespace MLFramework
             }
 
             //Reset Environment Position
+            if(Environment != null)
             for (int i = 0; i < Environment.transform.childCount; i++)
             {
                 var child = Environment.transform.GetChild(i);
