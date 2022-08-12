@@ -34,4 +34,3 @@ public class Trainer : TrainerBase
         //To add reward even if Ai's action ended, use ai.script.AddFitness(value,true) [reward will be added even if AI behaviour becomes Static]
     }
 }
-}
