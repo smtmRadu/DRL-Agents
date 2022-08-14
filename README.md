@@ -1,6 +1,6 @@
 # MLAgent
 Set of C# Scripts that can be used to train your AIs in Unity Engine.
-Use Latest version Framework folder ONLY.
+Use latest version Framework folder ONLY.
 ![Image](NNPNG.png)
 The Neural Network Class contains the code for instantiating a Artificial Neural Network based on Evolutionary Training with random mutations.
 
