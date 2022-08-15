@@ -9,3 +9,5 @@ The use of this framework is done by implementing a training strategy, strictly 
 Check the documentation "How to use the Framework.docx" placed inside the folder of the version.<br />
 -Performance leaks where solved starting from version 2.0.<br />
 -Multienvironmental Training set for upcoming version 3.0.<br />
+
+Current stable version: v2.6.
