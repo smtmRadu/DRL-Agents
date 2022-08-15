@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.IO;
 using UnityEngine.UI;
@@ -351,24 +353,24 @@ namespace MLFramework
     public class AgentBase : UnityEngine.MonoBehaviour
     {
         [Header("===== Agent Properties =====")]
-        public BehaviourType behaviour = BehaviourType.Static;
-        [SerializeField, Range(1, 50), Tooltip("The number of Inputs that the Agent will receive [-1,1]")] private int spaceSize = 2;
-        [SerializeField, Range(1, 15), Tooltip("The number of Outputs that the Agent will return [ 0,1]")] private int actionSize = 2;
-        public bool SaveBrain = false;
+        public BehaviorType behavior = BehaviorType.Static;
+        [Tooltip("Assign a path to a brain model")] public string path = null;
+        [Tooltip("Press this button to create a new brain using Network Properties settings or to save his current brain.\nCheck StreamingAssets/Neural_Networks.")] public bool SaveBrain = false;
         public NeuralNetwork network = null;
 
         [Space, Header("===== Network Properties =====")]
-        [Tooltip("If path != null -> Has a model assigned + if(networkStatus) -> The model is also loaded")] public string path = null;
+        [SerializeField, Range(1, 50), Tooltip("The number of Inputs that the Agent will receive [-1,1]")] private int spaceSize = 2;
+        [SerializeField, Range(1, 15), Tooltip("The number of Outputs that the Agent will return [-1,1]")] private int actionSize = 2;
         [SerializeField, Range(1, 100), Tooltip("The number of Hidden Layers")] private int deep = 5;
-        [SerializeField, Range(1, 100), Tooltip("The number of Neurons per Hidden Layer." + "[Usually you can set it as (spaceSize + actionSize)]")] private int neuronsPerLayer = 5;
+        [SerializeField, Range(1, 100), Tooltip("The number of Neurons per Hidden Layer")] private int neuronsPerLayer = 5;
 
         protected virtual void Update()
         {
             //SmallChecks
             BUTTONSaveBrain();
-            if (behaviour == BehaviourType.Self || behaviour == BehaviourType.Learning)
+            if (behavior == BehaviorType.Self || behavior == BehaviorType.Learning)
                 Action();
-            else if (behaviour == BehaviourType.Manual)
+            else if (behavior == BehaviorType.Manual)
                 Manual();
 
         }
@@ -417,9 +419,9 @@ namespace MLFramework
 
         public void AddReward(float reward, bool evenIfEndedAction = false)
         {
-            if (behaviour == BehaviourType.Manual || behaviour == BehaviourType.Self)
+            if (behavior == BehaviorType.Manual || behavior == BehaviorType.Self)
                 return;
-            if (evenIfEndedAction == false && behaviour == BehaviourType.Static)
+            if (evenIfEndedAction == false && behavior == BehaviorType.Static)
                 return;
             if (network == null)
             {
@@ -430,9 +432,9 @@ namespace MLFramework
         }
         public void SetReward(float reward, bool evenIfEndedAction = false)
         {
-            if (behaviour == BehaviourType.Manual || behaviour == BehaviourType.Self)
+            if (behavior == BehaviorType.Manual || behavior == BehaviorType.Self)
                 return;
-            if (evenIfEndedAction == false && behaviour == BehaviourType.Static)
+            if (evenIfEndedAction == false && behavior == BehaviorType.Static)
                 return;
             if (network == null)
             {
@@ -444,7 +446,7 @@ namespace MLFramework
         }
         public void EndAction()
         {
-            behaviour = BehaviourType.Static;
+            behavior = BehaviorType.Static;
         }
 
         //--------------------------------------SETTERS AND GETTERS--------------------------------------------//
@@ -522,18 +524,20 @@ namespace MLFramework
     {
         [Header("=== Models ===")]
         public GameObject AIModel;
-        [Tooltip("Insert the path of the brain")] public string brainModelPath;
+        [Tooltip("Brain model used to start the training with")] public string brainModelPath;
         private NeuralNetwork modelNet;
-        public GameObject Environment;
+        [Tooltip("Used to reset dynamic environmental objects's positions")] public GameObject Environment;
 
-        [Space(20), Header("Statistics Display")]
+        [Space(20), Tooltip("Save networks of best Ai's in /Saves/ folder before moving to the nextGen\nNumber of saves = Sqrt(Team Size)")] public bool saveBrains = false;
+
+        [Space(20), Header("=== Statistics Display ===")]
         [Tooltip("Load a Canvas TMPro to watch the current performance of AI's")] public TMPro.TMP_Text Labels = null;
         [Tooltip("Load a Canvas RectTransform to watch a Gizmos graph in SceneEditor")] public RectTransform Graph = null;
         List<float> bestResults;//memorize best results for every episode
         List<float> averageResults;//memorize avg results for every episode
         float bestResult = 1f;
 
-        [Space(20), Tooltip("Save networks of best sqrt(team) in /Saves/ folder before moving to the nextGen")] public bool saveBrains = false;
+
 
 
 
@@ -634,7 +638,7 @@ namespace MLFramework
                 if (i % 2 == 0)
                     script.network.MutateWeights();
 
-                script.behaviour = BehaviourType.Learning;
+                script.behavior = BehaviorType.Learning;
 
             }
 
@@ -691,7 +695,7 @@ namespace MLFramework
                 Debug.Log("Training Session Ended!");
                 ResetEpisode();
                 foreach (var item in team)
-                    item.script.behaviour = BehaviourType.Static;
+                    item.script.behavior = BehaviorType.Static;
                 startTraining = false;
             }
             UpdateDisplay();
@@ -703,7 +707,7 @@ namespace MLFramework
         bool AreAllDead()
         {
             foreach (AI item in team)
-                if (item.script.behaviour == BehaviourType.Learning)
+                if (item.script.behavior == BehaviorType.Learning)
                     return false;
             return true;
         }
@@ -766,7 +770,7 @@ namespace MLFramework
 
             //From static, move to learning
             foreach (var item in team)
-                item.script.behaviour = BehaviourType.Learning;
+                item.script.behavior = BehaviorType.Learning;
 
             currentStep++;
             OnEpisodeBegin();
@@ -1303,20 +1307,25 @@ namespace MLFramework
         Strategy1,
         Strategy2
     }
-    public enum BehaviourType
+    public enum BehaviorType
     {
+        [Tooltip("Cannot move at all")]
         Static,
+        [Tooltip("Can move only by user input")]
         Manual,
-        Self,
-        Learning
+        [Tooltip("Moves by itself when trains")]
+        Learning,
+        [Tooltip("Moves independently")]
+        Self
+
     }
     public enum TrainingStrategy
     {
-        [Tooltip("Half Best AI Reproduce + Only copies get Mutated")]
+        [Tooltip("Half best AI reproduce + Only copies get mutated")]
         Strategy1,
-        [Tooltip("(1/3) Worst AI get Best Brain + Mutation | (2/3) 50% Half Best AI Reproduce + Only copies get Mutated")]
+        [Tooltip("(1/3) Worst AI get Best Brain + Mutation | (2/3) 50% half best AI reproduce + Only copies get mutated")]
         Strategy2,
-        [Tooltip("Only Best AI Reproduce + All copies get Mutated")]
+        [Tooltip("Only best AI Reproduce + All copies get mutated")]
         Strategy3,
 
     }
