@@ -11,4 +11,4 @@ Check the documentation "How to use the Framework.docx" placed inside the folder
 -NeuralNetwork is more performant starting with version 2.9<br />
 -Multienvironmental Training set for upcoming version 4.0.<br />
 
-Current stable version: v2.9.
+Current stable version: v2.92.
