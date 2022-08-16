@@ -7,7 +7,8 @@ The Neural Network Class contains the code for instantiating an Artificial Neura
 The use of this framework is done by implementing a training strategy, strictly said by overriding some methods where you send observations (inputs) and receive actions (outputs) + creating a suitable, stable and well designed training environment.
 
 Check the documentation "How to use the Framework.docx" placed inside the folder of the version.<br />
--Performance leaks where solved starting from version 2.0.<br />
--Multienvironmental Training set for upcoming version 3.0.<br />
+-Performance leaks were solved starting from version 2.0.<br />
+-NeuralNetwork is more performant starting with version 2.9<br />
+-Multienvironmental Training set for upcoming version 4.0.<br />
 
 Current stable version: v2.9.
