@@ -651,8 +651,8 @@ namespace MLFramework
             if (!Directory.Exists(pathsb.ToString()))
                 Directory.CreateDirectory(pathsb.ToString());
 
-            pathsb.Append("NeuralNetworkSaveID");
-            pathsb.Append(this.gameObject.GetInstanceID() * -1f);
+            pathsb.Append("NeuralNetworkID");
+            pathsb.Append(this.gameObject.GetInstanceID());
             pathsb.Append(".txt");
 
 
