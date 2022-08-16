@@ -1481,11 +1481,11 @@ namespace MLFramework
     }
     public enum TrainingStrategy
     {
-        [Tooltip("Half Best AI Reproduce + Only copies get Mutated")]
+        [Tooltip("Half best AI reproduce + Only copies get mutated")]
         Strategy1,
-        [Tooltip("(1/3) Worst AI get Best Brain + Mutation | (2/3) 50% Half Best AI Reproduce + Only copies get Mutated")]
+        [Tooltip("(1/3) Worst AI get best brain + Mutation | (2/3) 50% Half best AI reproduce + Only copies get mutated")]
         Strategy2,
-        [Tooltip("Only Best AI Reproduce + All copies get Mutated")]
+        [Tooltip("Only best AI reproduce + All copies get mutated")]
         Strategy3,
 
     }
