@@ -12,4 +12,4 @@ Check the documentation "How to use the Framework.docx" placed inside the folder
 -Multienvironmental Training set for upcoming version 4.0.<br />
 -Heuristic Training set for version 5.0<br />
 
-Current stable version: v2.92.
+Current stable version: v3.0.
