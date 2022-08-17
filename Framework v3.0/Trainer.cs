@@ -15,6 +15,7 @@ public class Trainer : TrainerBase
     protected override void SetupTeam()
     {
         base.SetupTeam();
+        //Example - Add different color for your AI's
     }
     protected override void EnvironmentAction()
     {
@@ -22,12 +23,12 @@ public class Trainer : TrainerBase
     }
     protected override void OnEpisodeBegin()
     {
-        //Actions after Reseting Episode - Ex: Activate reward flags
+        //Actions after Reseting Episode - Example: Activate reward flags/ Modify the environment randomly
     }
     protected override void OnEpisodeEnd(ref AI ai)
     {
-        //Modify all AI before Reseting Episode - Ex: Add postActions reward
-        // ai.agent - used to access the game object
+        //Modify each AI before Reseting Episode - Ex: Add postActions reward
+        // ai.agent - used to access the ai gameobject
         // ai.script - used to acces Agent Script 
         // ai.fitness - used to get it's current fitness
 

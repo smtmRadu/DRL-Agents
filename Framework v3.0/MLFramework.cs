@@ -621,7 +621,6 @@ namespace MLFramework
                 Debug.LogError("Cannot set reward because neural network is null");
                 return;
             }
-
             network.SetFitness(reward);
         }
         public void EndAction()
@@ -719,8 +718,9 @@ namespace MLFramework
 
         private int currentStep = 1;
         protected AI[] team;
-        protected Transform[] agentsStartingPositions;
-        protected EnvObject[] environmentObjects;
+        protected List<PosAndRot> environmentInitialTransform = new List<PosAndRot>();
+        protected List<PosAndRot> aiInitialTransform = new List<PosAndRot>();
+        int parseCounter = 0;
         bool startTraining = true;
 
 
@@ -738,8 +738,11 @@ namespace MLFramework
                 startTraining = false;
                 return;
             }
+            if (AIModel != null)
+                GetAllTransforms(ref aiInitialTransform, AIModel.transform);
+            if (Environment != null)
+                GetAllTransforms(ref environmentInitialTransform, Environment.transform);
             SetupTeam();
-            SetupStartingPositions();
 
         }
         protected virtual void Update()
@@ -825,30 +828,6 @@ namespace MLFramework
             AIModel.SetActive(false);
             UpdateDisplay();
         }
-        void SetupStartingPositions()
-        {
-            OnEpisodeBegin();
-            if (agentsStartingPositions == null)
-            {
-                agentsStartingPositions = new Transform[team.Length];
-                for (int i = 0; i < agentsStartingPositions.Length; i++)
-                {
-                    agentsStartingPositions[i] = AIModel.transform;
-                }
-            }
-            if (Environment != null)
-            {
-                environmentObjects = new EnvObject[Environment.transform.childCount];
-                for (int i = 0; i < environmentObjects.Length; i++)
-                {
-                    environmentObjects[i].obj = Environment.transform.GetChild(i).gameObject;
-                    environmentObjects[i].startingTransform = new GameObject().transform;
-                    environmentObjects[i].startingTransform.position = environmentObjects[i].obj.transform.position;
-                    environmentObjects[i].startingTransform.rotation = environmentObjects[i].obj.transform.rotation;
-                    environmentObjects[i].startingTransform.localScale = environmentObjects[i].obj.transform.localScale;
-                }
-            }
-        }
 
         //--------------------------------------------TRAINING PROCESS--------------------------------------//
         void Train()
@@ -922,22 +901,13 @@ namespace MLFramework
             //Reset AI's Position
             for (int i = 0; i < team.Length; i++)
             {
-                var agent = team[i].agent;
-                agent.transform.position = agentsStartingPositions[i].position;
-                agent.transform.rotation = agentsStartingPositions[i].rotation;
-                agent.transform.localScale = agentsStartingPositions[i].localScale;
+                AddInitialTransform(ref team[i].agent, aiInitialTransform);
+                parseCounter = 0;
             }
-
             //Reset Environment Position
             if (Environment != null)
-                for (int i = 0; i < Environment.transform.childCount; i++)
-                {
-                    var child = Environment.transform.GetChild(i);
-                    child.transform.position = environmentObjects[i].startingTransform.position;
-                    child.transform.rotation = environmentObjects[i].startingTransform.rotation;
-                    child.transform.localScale = environmentObjects[i].startingTransform.localScale;
-                }
-
+                AddInitialTransform(ref Environment, environmentInitialTransform);
+            parseCounter = 0;
             //From static, move to self
             foreach (var item in team)
                 item.script.behavior = BehaviorType.Self;
@@ -957,6 +927,33 @@ namespace MLFramework
             ///<summary>
             ///Is called at the beggining of ResetEpisode()
             /// </summary>
+        }
+        //----------------------------------------------POSITIONING----------------------------------------//
+        protected void GetAllTransforms(ref List<PosAndRot> list, Transform obj)
+        {
+            foreach (Transform child in obj)
+            {
+                PosAndRot tr = new PosAndRot(child.position, child.localScale, child.rotation);
+                list.Add(new PosAndRot(child.position, child.localScale, child.rotation));
+                GetAllTransforms(ref list, child);
+            }
+        }
+        protected void AddInitialTransform(ref GameObject obj, in List<PosAndRot> list)
+        {
+            ///PARSE COUNTER USED SEPARATELY <IT MUST BE INITIALIZED WITH 0></IT>
+            for (int i = 0; i < obj.transform.childCount; i++)
+            {
+                GameObject child = obj.transform.GetChild(i).gameObject;
+                ApplyTransform(ref child, list[parseCounter]);
+                parseCounter++;
+                AddInitialTransform(ref child, list);
+            }
+        }
+        private void ApplyTransform(ref GameObject obj, PosAndRot trnsfrm)
+        {
+            obj.transform.position = trnsfrm.position;
+            obj.transform.localScale = trnsfrm.scale;
+            obj.transform.rotation = trnsfrm.rotation;
         }
         //-----------------------------------------------STATISTICS---------------------------------------------//
         void UpdateDisplay()
@@ -994,7 +991,7 @@ namespace MLFramework
 
                     line.Append("<color=" + colorString.ToString() + ">");
                 }
-                catch (System.Exception e) { hasColor = false; Debug.Log(e); }
+                catch { hasColor = false; }
 
                 line.Append("ID: ");
                 line.Append(item.agent.GetInstanceID().ToString());
@@ -1536,12 +1533,6 @@ namespace MLFramework
 
         }
     }
-
-    public struct EnvObject
-    {
-        public GameObject obj;
-        public Transform startingTransform;
-    }
     public struct AI
     {
         public GameObject agent;
@@ -1549,6 +1540,17 @@ namespace MLFramework
         public float fitness;
     }
 
+    public struct PosAndRot
+    {
+        public Vector3 position, scale;
+        public Quaternion rotation;
+        public PosAndRot(Vector3 pos, Vector3 scl, Quaternion rot)
+        {
+            position = pos;
+            scale = scl;
+            rotation = rot;
+        }
+    }
     public enum BehaviorType
     {
         [Tooltip("Cannot move at all")]

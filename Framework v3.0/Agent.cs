@@ -20,12 +20,11 @@ public class Agent : AgentBase
     {
         //ActionBuffer outputs are in [-1f,1f] range
     }
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        //Usefull Methods:
-            //AddReward()
-            //SetReward()
-            //EndAction()
-            //GetReward()
-    }
+
+    //Usefull Methods, use them in CollisionCollider2D, CollisionTrigger2D, Update(), etc. 
+    //AddReward()
+    //SetReward()
+    //EndAction()
+    //GetFitness()
+   
 }
