@@ -2,7 +2,7 @@
 Set of C# Scripts that can be used to train your AIs in Unity Engine.
 Use latest stable version Framework folder ONLY.
 ![Image](NNPNG.png)
-The Neural Network Class contains the code for instantiating an Artificial Neural Network based on Evolutionary Training with random mutations.
+Neural Network Class contains the code for instantiating a feedforward multilayerPerceptron Neural Network.
 
 The use of this framework is done by implementing a training strategy, strictly said by overriding some methods where you send observations (inputs) and receive actions (outputs) + creating a suitable, stable and well designed training environment.
 
