@@ -737,9 +737,9 @@ namespace MLFramework
                 return;
             }
             if (AIModel != null)
-                GetAllTransforms(ref aiInitialTransform, AIModel.transform);
+                GetAllTransforms(AIModel.transform, ref aiInitialTransform);
             if (Environment != null)
-                GetAllTransforms(ref environmentInitialTransform, Environment.transform);
+                GetAllTransforms(Environment.transform, ref environmentInitialTransform);
             SetupTeam();
 
         }
@@ -898,14 +898,12 @@ namespace MLFramework
 
             //Reset AI's Position
             for (int i = 0; i < team.Length; i++)
-            {
-                AddInitialTransform(ref team[i].agent, aiInitialTransform);
-                parseCounter = 0;
-            }
+                ApplyAllTransforms(ref team[i].agent, in aiInitialTransform);
+
             //Reset Environment Position
             if (Environment != null)
-                AddInitialTransform(ref Environment, environmentInitialTransform);
-            parseCounter = 0;
+                ApplyAllTransforms(ref Environment, in environmentInitialTransform);
+
             //From static, move to self
             foreach (var item in team)
                 item.script.behavior = BehaviorType.Self;
@@ -927,16 +925,29 @@ namespace MLFramework
             /// </summary>
         }
         //----------------------------------------------POSITIONING----------------------------------------//
-        protected void GetAllTransforms(ref List<PosAndRot> list, Transform obj)
+        private void GetAllTransforms(Transform obj, ref List<PosAndRot> inList)
+        {
+            parseCounter = 1;
+            inList.Add(new PosAndRot(obj.position, obj.localScale, obj.rotation));
+            GetChildsTransforms(ref inList, obj);
+        }
+        private void ApplyAllTransforms(ref GameObject obj, in List<PosAndRot> fromList)
+        {
+            parseCounter = 1;
+            ApplyTransform(ref obj, fromList[0]);
+            AddChildsInitialTransform(ref obj, in fromList);
+        }
+
+        private void GetChildsTransforms(ref List<PosAndRot> list, Transform obj)
         {
             foreach (Transform child in obj)
             {
                 PosAndRot tr = new PosAndRot(child.position, child.localScale, child.rotation);
                 list.Add(new PosAndRot(child.position, child.localScale, child.rotation));
-                GetAllTransforms(ref list, child);
+                GetChildsTransforms(ref list, child);
             }
         }
-        protected void AddInitialTransform(ref GameObject obj, in List<PosAndRot> list)
+        private void AddChildsInitialTransform(ref GameObject obj, in List<PosAndRot> list)
         {
             ///PARSE COUNTER USED SEPARATELY <IT MUST BE INITIALIZED WITH 0></IT>
             for (int i = 0; i < obj.transform.childCount; i++)
@@ -944,7 +955,7 @@ namespace MLFramework
                 GameObject child = obj.transform.GetChild(i).gameObject;
                 ApplyTransform(ref child, list[parseCounter]);
                 parseCounter++;
-                AddInitialTransform(ref child, list);
+                AddChildsInitialTransform(ref child, list);
             }
         }
         private void ApplyTransform(ref GameObject obj, PosAndRot trnsfrm)
@@ -1559,13 +1570,13 @@ namespace MLFramework
 
         }
     }
+
     public struct AI
     {
         public GameObject agent;
         public Agent script;
         public float fitness;
     }
-
     public struct PosAndRot
     {
         public Vector3 position, scale;
