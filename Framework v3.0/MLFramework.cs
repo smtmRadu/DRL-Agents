@@ -704,7 +704,7 @@ namespace MLFramework
         [Space, Header("=== Training Settings ===")]
         [Range(3, 500)] public int teamSize = 5;//IT cannot be 1 or 2, otherwise strategies will not work
         [Range(1, 10), Tooltip("Episodes needed to run until passing to the next Generation")] public int episodesPerEvolution = 1;
-        [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 100;
+        [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 100; private int currentEpisode = 1;
         [Range(1, 100), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 100f; float timeLeft;
 
         [Tooltip("-In the beggining use Strategy1.\n-When you see your AI's performance slows down, switch to Strategy2.\n-To finetune your last Brain, use Strategy3.")]
@@ -715,8 +715,6 @@ namespace MLFramework
         public InitializationFunctionType initializationType = InitializationFunctionType.StandardNormal1;
 
 
-
-        private int currentStep = 1;
         protected AI[] team;
         protected List<PosAndRot> environmentInitialTransform = new List<PosAndRot>();
         protected List<PosAndRot> aiInitialTransform = new List<PosAndRot>();
@@ -840,7 +838,7 @@ namespace MLFramework
             if (AreAllDead() || timeLeft <= 0)
                 ResetEpisode();
 
-            if (currentStep >= maxEpisodes)
+            if (currentEpisode >= maxEpisodes)
             {
                 Debug.Log("Training Session Ended!");
                 foreach (var item in team)
@@ -875,7 +873,7 @@ namespace MLFramework
 
             timeLeft = maxTimePerEpisode;
             //Next Gen
-            if (currentStep % episodesPerEvolution == 0)
+            if (currentEpisode % episodesPerEvolution == 0)
             {
                 if (saveBrains == true)
                     SaveBrains();
@@ -912,7 +910,7 @@ namespace MLFramework
             foreach (var item in team)
                 item.script.behavior = BehaviorType.Self;
 
-            currentStep++;
+            currentEpisode++;
             OnEpisodeBegin();
         }
         protected virtual void OnEpisodeBegin()
@@ -963,15 +961,23 @@ namespace MLFramework
                 return;
 
             SortTeam();
-
+            string statColor;
             StringBuilder statData = new StringBuilder();
-            statData.Append("<b>|Epsiode: ");
-            statData.Append(currentStep);
+
+
+            statData.Append("<b>|Episode: ");
+            statData.Append(currentEpisode);
             statData.Append("\n");
 
-            statData.Append("<b>|Timeleft: ");
+            {//Colorize
+                Color tlcolor = Color.red + (Color.green - Color.red) * (timeLeft / maxTimePerEpisode);
+                Color32 tlcolor32 = new Color32();
+                ConvertColorToColor32(ref tlcolor, ref tlcolor32);
+                statColor = GetRichTextColorFromColor32(ref tlcolor32);
+            }
+            statData.Append("<b>|Timeleft: <color=" + statColor + ">");
             statData.Append(timeLeft.ToString("0.000"));
-            statData.Append("\n");
+            statData.Append("</color>\n");
 
             statData.Append("|Goal: ");
             statData.Append(modelNet.GetFitness().ToString("0.000"));
@@ -1047,7 +1053,7 @@ namespace MLFramework
 
 
 
-                float xUnit = xSize / currentStep;
+                float xUnit = xSize / currentEpisode;
                 /* if (bestResults.Count > 0)
                      if (goal < bestResults[bestResults.Count - 1])
                          goal = bestResults[bestResults.Count - 1];*/
@@ -1207,10 +1213,11 @@ namespace MLFramework
             /// <summary>
             /// Half worst AI's are replaced with the a single copy of half best AI's, only the copy is mutated
             /// </summary>
+            SortTeam();
             //BUILD STATISTIC
             StringBuilder statistic = new StringBuilder();
             statistic.Append("Step: ");
-            statistic.Append(currentStep);
+            statistic.Append(currentEpisode);
             statistic.Append(" TEAM: <color=#4db8ff>");
             for (int i = team.Length - 1; i >= 0; i--)
             {
@@ -1240,7 +1247,9 @@ namespace MLFramework
                 modelNet = new NeuralNetwork(brainModelPath);
             }
             Debug.Log(statistic.ToString());
-            //GetHalfBestBrains and assign to worst guys
+
+
+            //BUILD NEXT GENERATION
             int halfCount = team.Length / 2;
             if (team.Length % 2 == 0)//If Even team Size
                 for (int i = 0; i < halfCount; i++)
@@ -1262,10 +1271,11 @@ namespace MLFramework
             /// <summary>
             /// 1/3 of the AI's (the worst) receive best brain and get mutated, for the rest 2/3 the first strategy applies
             /// </summary>
+            SortTeam();
             //BUILD STATISTIC
             StringBuilder statistic = new StringBuilder();
             statistic.Append("Step: ");
-            statistic.Append(currentStep);
+            statistic.Append(currentEpisode);
             statistic.Append(" TEAM: <color=#4db8ff>");
 
             int somevar = team.Length % 3;
@@ -1332,10 +1342,11 @@ namespace MLFramework
             /// <summary>
             /// Best AI is reproduced, all of his clones are mutated
             /// </summary>
+            SortTeam();
             //BUILD STATISTIC
             StringBuilder statistic = new StringBuilder();
             statistic.Append("Step: ");
-            statistic.Append(currentStep);
+            statistic.Append(currentEpisode);
 
             //Place best AI in yellow
             statistic.Append(" TEAM: <color=#e6e600>");
@@ -1451,6 +1462,14 @@ namespace MLFramework
             color32.g = System.Convert.ToByte(color.g * 255f);
             color32.b = System.Convert.ToByte(color.b * 255f);
             color32.a = System.Convert.ToByte(color.a * 255f);
+        }
+        private static string GetRichTextColorFromColor32(ref Color32 color)
+        {
+            string clr = "#";
+            clr += GetHexFrom(color.r);
+            clr += GetHexFrom(color.g);
+            clr += GetHexFrom(color.b);
+            return clr;
         }
         private static string GetHexFrom(int value)
         {
@@ -1630,11 +1649,10 @@ namespace MLFramework
     {
         [Tooltip("@value: [0, 1]")]
         RandomValue,
-        [Tooltip("@value: close to normal distribution" +
+        [Tooltip("@value: close normal distribution" +
             "@l = 0.15915f" +
             "@k = 2f" +
             "@z = 0.3373f")]
         StandardNormal1,
-
     }
 }
