@@ -570,7 +570,7 @@ namespace MLFramework
         {
             if (network == null) // case he self controls
             {
-                if (path == null || new FileInfo(path).Length == 0)
+                if (path == null || path == "" || new FileInfo(path).Length == 0)
                 {
                     Debug.LogError("Cannot Self Control because the Brain Path uploaded is invalid");
                     return;
@@ -968,8 +968,13 @@ namespace MLFramework
             statData.Append("<b>|Epsiode: ");
             statData.Append(currentStep);
             statData.Append("\n");
+
+            statData.Append("<b>|Timeleft: ");
+            statData.Append(timeLeft.ToString("0.000"));
+            statData.Append("\n");
+
             statData.Append("|Goal: ");
-            statData.Append(modelNet.GetFitness());
+            statData.Append(modelNet.GetFitness().ToString("0.000"));
             statData.Append("</b>\n\n");
             for (int i = team.Length - 1; i >= 0; --i)
             {
@@ -1000,8 +1005,11 @@ namespace MLFramework
                     line.Append("</color>");
 
                 line.Append(" | Fitness: ");
-                line.Append(item.script.GetFitness());
+                line.Append(item.script.GetFitness().ToString("0.000"));
 
+                if (item.script.behavior == BehaviorType.Self)
+                    line.Append(" | <color=green>@</color>");
+                else line.Append(" | <color=red>X</color>");
                 line.Append("\n");
                 statData.AppendLine(line.ToString());
             }
@@ -1011,12 +1019,10 @@ namespace MLFramework
         private void OnDrawGizmos()
         {
             //Draw Graph
+            if (Graph == null)
+                return;
             try
             {
-
-                if (Graph == null)
-                    return;
-
                 float goal = modelNet.GetFitness();
                 Gizmos.matrix = Graph.localToWorldMatrix;
                 float xSize = Graph.rect.width;
@@ -1173,13 +1179,13 @@ namespace MLFramework
                 Gizmos.color = emptyNeuron;
                 for (int i = 0; i < neuronsPosition.Length; i++)
                     for (int j = 0; j < neuronsPosition[i].Length; j++)
-                        Gizmos.DrawSphere(neuronsPosition[i][j], scale * 6000f);
+                        Gizmos.DrawSphere(neuronsPosition[i][j], scale * 4000f);
 
                 //Draw Biases
                 Gizmos.color = biasColor;
                 for (int i = 0; i < biasesPosition.Length; i++)
                 {
-                    Gizmos.DrawSphere(biasesPosition[i], scale * 6000f);
+                    Gizmos.DrawSphere(biasesPosition[i], scale * 4000f);
                 }
 
 
@@ -1399,34 +1405,35 @@ namespace MLFramework
         }
         AI[] SortTeamByQuicksort(ref AI[] arr)
         {
-            //STACK OVERFLOW PROBLEMS
             return null;
-            List<AI> less = new List<AI>();
-            List<AI> equal = new List<AI>();
-            List<AI> greater = new List<AI>();
-            if (arr.Length > 1)
-            {
-                float pivot = team[0].fitness;
-                foreach (var item in arr)
-                {
-                    if (item.fitness < pivot)
-                        less.Add(item);
-                    else if (item.fitness == pivot)
-                        equal.Add(item);
-                    else if (item.fitness > pivot)
-                        greater.Add(item);
-                }
-                AI[] lessArr = less.ToArray();
-                AI[] equalArr = equal.ToArray();
-                AI[] greaterArr = greater.ToArray();
+            //STACK OVERFLOW PROBLEMS
+            /*  return null;
+              List<AI> less = new List<AI>();
+              List<AI> equal = new List<AI>();
+              List<AI> greater = new List<AI>();
+              if (arr.Length > 1)
+              {
+                  float pivot = team[0].fitness;
+                  foreach (var item in arr)
+                  {
+                      if (item.fitness < pivot)
+                          less.Add(item);
+                      else if (item.fitness == pivot)
+                          equal.Add(item);
+                      else if (item.fitness > pivot)
+                          greater.Add(item);
+                  }
+                  AI[] lessArr = less.ToArray();
+                  AI[] equalArr = equal.ToArray();
+                  AI[] greaterArr = greater.ToArray();
 
-                AI[] newArr = new AI[lessArr.Length + equalArr.Length + greaterArr.Length];
-                SortTeamByQuicksort(ref lessArr).CopyTo(newArr, 0);
-                equalArr.CopyTo(newArr, lessArr.Length);
-                SortTeamByQuicksort(ref greaterArr).CopyTo(newArr, equalArr.Length);
-                return newArr;
-            }
-            else return arr;
+                  AI[] newArr = new AI[lessArr.Length + equalArr.Length + greaterArr.Length];
+                  SortTeamByQuicksort(ref lessArr).CopyTo(newArr, 0);
+                  equalArr.CopyTo(newArr, lessArr.Length);
+                  SortTeamByQuicksort(ref greaterArr).CopyTo(newArr, equalArr.Length);
+                  return newArr;
+              }
+              else return arr;*/
         }
 
         //------------------------------------------COMPLEMENTARY METHODS-----------------------------------//
@@ -1623,7 +1630,7 @@ namespace MLFramework
     {
         [Tooltip("@value: [0, 1]")]
         RandomValue,
-        [Tooltip("@value: close normal distribution" +
+        [Tooltip("@value: close to normal distribution" +
             "@l = 0.15915f" +
             "@k = 2f" +
             "@z = 0.3373f")]
