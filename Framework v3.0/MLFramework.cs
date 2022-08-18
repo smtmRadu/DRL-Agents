@@ -705,7 +705,7 @@ namespace MLFramework
         [Range(3, 500)] public int teamSize = 5;//IT cannot be 1 or 2, otherwise strategies will not work
         [Range(1, 10), Tooltip("Episodes needed to run until passing to the next Generation")] public int episodesPerEvolution = 1;
         [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 100; private int currentEpisode = 1;
-        [Range(1, 100), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 100f; float timeLeft;
+        [Range(1, 1000), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 100f; float timeLeft;
 
         [Tooltip("-In the beggining use Strategy1.\n-When you see your AI's performance slows down, switch to Strategy2.\n-To finetune your last Brain, use Strategy3.")]
         public TrainingStrategy trainingStrategy = TrainingStrategy.Strategy1;
@@ -810,6 +810,11 @@ namespace MLFramework
                 script.behavior = BehaviorType.Self;
 
             }
+
+
+            //Set AI's Position
+            for (int i = 0; i < team.Length; i++)
+                ApplyAllTransforms(ref team[i].agent, in aiInitialTransform);
 
             //Colorize AI's if possible
             foreach (var item in team)
