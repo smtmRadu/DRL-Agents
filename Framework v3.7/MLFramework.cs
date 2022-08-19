@@ -653,7 +653,7 @@ namespace MLFramework
                 Directory.CreateDirectory(pathsb.ToString());
 
             pathsb.Append("NeuralNetworkID");
-            pathsb.Append(this.gameObject.GetInstanceID());
+            pathsb.Append(((int)this.gameObject.GetInstanceID()) * (-1));
             pathsb.Append(".txt");
 
 
@@ -878,14 +878,14 @@ namespace MLFramework
             UpdateFitnessInArray();
             SortTeam();
 
-            //Graph Related
-            bestResults.Add(team[team.Length - 1].fitness);
-            averageResults.Add(FindAverageResult());
-
             timeLeft = maxTimePerEpisode;
             //Next Gen
             if (currentEpisode % episodesPerEvolution == 0)
             {
+                //Graph Related
+                bestResults.Add(team[team.Length - 1].fitness);
+                averageResults.Add(FindAverageResult());
+
                 if (saveBrains == true)
                     SaveBrains();
                 switch (trainingStrategy)
@@ -981,7 +981,7 @@ namespace MLFramework
 
 
 
-            if (environmentType == TrainingEnvironment.MultipleLayersMonoEnvironment)
+            if (environmentType == TrainingEnvironment.MultipleLayersMultipleEnvironments)
                 episodesPerEvolution = environmentsNumber;
             if (environmentType == TrainingEnvironment.SingleLayerMonoEnvironment)
                 teamSize = environmentsNumber;
@@ -1121,7 +1121,7 @@ namespace MLFramework
                 catch { hasColor = false; }
 
                 line.Append("ID: ");
-                line.Append(item.agent.GetInstanceID().ToString());
+                line.Append((((int)item.agent.GetInstanceID()) * (-1)).ToString());
                 //IF COLORIZED
                 if (hasColor)
                     line.Append("</color>");
@@ -1170,15 +1170,7 @@ namespace MLFramework
 
 
                 float xUnit = xSize / currentEpisode;
-                /* if (bestResults.Count > 0)
-                     if (goal < bestResults[bestResults.Count - 1])
-                         goal = bestResults[bestResults.Count - 1];*/
-
                 float yUnit = ySize / goal;
-
-
-
-
 
                 //Draw Best Dots
                 Gizmos.color = Color.yellow;
