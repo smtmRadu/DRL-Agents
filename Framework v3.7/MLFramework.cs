@@ -695,7 +695,7 @@ namespace MLFramework
         public GameObject AIModel;
         [Tooltip("Brain model used to start the training with")] public string brainModelPath;
         private NeuralNetwork modelNet;
-        [Tooltip("Used to reset the dynamic environmental object's positions")] public TrainingEnvironment environmentType = TrainingEnvironment.SinglelayerMonoenvironment;
+        [Tooltip("Used to reset the dynamic environmental object's positions")] public TrainingEnvironment environmentType = TrainingEnvironment.MultipleLayersMonoEnvironment;
         private int environmentsNumber = 0; private GameObject[] Environments;
         private int currentEnvironment = 0;
 
@@ -981,16 +981,16 @@ namespace MLFramework
 
 
 
-            if (environmentType == TrainingEnvironment.SinglelayerMonoenvironment)
+            if (environmentType == TrainingEnvironment.MultipleLayersMonoEnvironment)
                 episodesPerEvolution = environmentsNumber;
-            if (environmentType == TrainingEnvironment.MultilayerMonoenvironment)
+            if (environmentType == TrainingEnvironment.SingleLayerMonoEnvironment)
                 teamSize = environmentsNumber;
 
         }
         private void NextEnvironment()
         {
             //ALWAYS CALL RESET ENVIRONMENT TRANSFORM, THEN RESET AGENT TRANSFORM
-            if (environmentType == TrainingEnvironment.SinglelayerMultienvironment)
+            if (environmentType == TrainingEnvironment.MultipleLayersMultipleEnvironments)
             {
                 currentEnvironment++;
                 if (currentEnvironment == environmentsNumber)
@@ -1000,7 +1000,7 @@ namespace MLFramework
         private void ResetEnvironmentTransform()
         {
             //SingleLayer Environment - reset only current env
-            if (environmentType == TrainingEnvironment.SinglelayerMonoenvironment || environmentType == TrainingEnvironment.SinglelayerMultienvironment)
+            if (environmentType == TrainingEnvironment.MultipleLayersMonoEnvironment || environmentType == TrainingEnvironment.MultipleLayersMultipleEnvironments)
                 ApplyAllTransforms(ref Environments[currentEnvironment], in environmentsInitialTransform[currentEnvironment]);
             //MultiLayer Environment - reset all environments
             else
@@ -1010,7 +1010,7 @@ namespace MLFramework
         private void ResetAgentsTransform()
         {
             //SingleLayer Environment - reset agents pos to next environment
-            if (environmentType == TrainingEnvironment.SinglelayerMonoenvironment || environmentType == TrainingEnvironment.SinglelayerMultienvironment)
+            if (environmentType == TrainingEnvironment.MultipleLayersMonoEnvironment || environmentType == TrainingEnvironment.MultipleLayersMultipleEnvironments)
                 for (int i = 0; i < team.Length; i++)
                     ApplyAllTransforms(ref team[i].agent, in agentsInitialTransform[currentEnvironment]);
             //MultiLayer Environment - reset agents pos only for their environment
@@ -1703,15 +1703,15 @@ namespace MLFramework
     {
         //Agents overlap eachother, environmental things are common
         [Tooltip("Single Environment for multiple agents\n@first object with Environment tag")]
-        SinglelayerMonoenvironment,//First found Environment is taken
+        MultipleLayersMonoEnvironment,//First found Environment is taken
         [Tooltip("Multiple Environments for multiple agents")]
-        SinglelayerMultienvironment,
+        MultipleLayersMultipleEnvironments,
 
         //Agents work separately, environmental things are personal for each agent, layers are just positionated far away from eachother
         [Tooltip("Single Environment for a single agent")]
-        MultilayerMonoenvironment,
+        SingleLayerMonoEnvironment,
         [Tooltip("Multiple Environments for a single agent")]
-        MultilayerMultienvironment,
+        SingleLayerMultipleEnvironments,
     }
     public enum BehaviorType
     {
