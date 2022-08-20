@@ -972,8 +972,10 @@ namespace MLFramework
                 if (Start == null)//If the monoenvironment doesn't have a start, take as start the AIModel
                     GetAllTransforms(AIModel.transform, ref agentsInitialTransform[0]);
                 else
+                {
                     GetAllTransforms(Start, ref agentsInitialTransform[0]);
-                Start.gameObject.SetActive(false);
+                    Start.gameObject.SetActive(false);
+                }
             }
             else
                 for (int i = 0; i < environmentsNumber; i++)
