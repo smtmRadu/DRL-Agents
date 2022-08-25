@@ -11,6 +11,7 @@ Check the documentation "How to use the Framework.docx" placed inside the folder
 -NeuralNetwork is more performant starting with version 2.9<br />
 -Most tested variant is v3.0 (is monoenvironmental)<br />
 -Multienvironmental Training started in version 3.7<br />
+-Heuristic leaks mentioned in version 4.0<br />
 -Heuristic Training set for version 5.0<br />
 
-Current stable version: v3.8.
+Current stable version: v4.0.
