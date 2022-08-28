@@ -6,6 +6,7 @@ Neural Network Class contains the code for instantiating a feedforward multilaye
 
 The use of this framework is done by overriding some methods where you send observations (inputs) and receive actions (outputs), creating a suitable, stable and well designed training environment or by choosing a heuristic approach. Check the documentation "How to use the Framework.docx" placed inside the folder of the latest version.<br />
 
+![cars](cars.gif)
 
 -Performance leaks were solved starting from version 2.0.<br />
 -NeuralNetwork is more performant starting with version 2.9<br />
@@ -14,5 +15,4 @@ The use of this framework is done by overriding some methods where you send obse
 -Heuristic Training released in version 4.78<br />
 -Substantial testing set for last version 5.0<br />
 
-![GIF](example.gif)
 Current stable version: v4.78 - heuristicTraining free, resonable testing
