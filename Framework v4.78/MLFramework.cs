@@ -7,7 +7,8 @@ using System.Text;
 using System.Linq;
 using TMPro;
 using System;
-
+using UnityEditor.ShortcutManagement;
+using Unity.VisualScripting;
 
 namespace MLFramework
 {
@@ -285,21 +286,31 @@ namespace MLFramework
         }
         protected void MutateWeightOrBias(ref float weightOrBias)
         {
-            if (mutation == MutationStrategy.Classic)
-                ClassicMutation(ref weightOrBias);
 
-            else if (mutation == MutationStrategy.LightPercentage)
-                LightPercentageMutation(ref weightOrBias);
-            else if (mutation == MutationStrategy.LightValue)
-                LightValueMutation(ref weightOrBias);
-
-            else if (mutation == MutationStrategy.StrongPercentage)
-                StrongPercentagegMutation(ref weightOrBias);
-            else if (mutation == MutationStrategy.StrongValue)
-                StrongValueMutation(ref weightOrBias);
-
-            else if (mutation == MutationStrategy.Chaotic)
-                ChaoticMutation(ref weightOrBias);
+            switch (mutation)
+            {
+                case MutationStrategy.Classic:
+                    ClassicMutation(ref weightOrBias);
+                    break;
+                case MutationStrategy.LightPercentage:
+                    LightPercentageMutation(ref weightOrBias);
+                    break;
+                case MutationStrategy.LightValue:
+                    LightValueMutation(ref weightOrBias);
+                    break;
+                case MutationStrategy.StrongPercentage:
+                    StrongPercentagegMutation(ref weightOrBias);
+                    break;
+                case MutationStrategy.StrongValue:
+                    StrongValueMutation(ref weightOrBias);
+                    break;
+                case MutationStrategy.Chaotic:
+                    ChaoticMutation(ref weightOrBias);
+                    break;
+                default:
+                    ClassicMutation(ref weightOrBias);
+                    break;
+            }
         }
 
         void ClassicMutation(ref float weight)
@@ -966,7 +977,7 @@ namespace MLFramework
         //-------------------------------------------FOR USE WHEN TRAINING-------------------------------------------------//
         public void AddReward(float reward, bool evenIfActionEnded = false)
         {
-            if (behavior == BehaviorType.Manual)
+            if (behavior == BehaviorType.Manual || behavior == BehaviorType.Heuristic)
                 return;
             if (evenIfActionEnded == false && behavior == BehaviorType.Static)
                 return;
@@ -979,7 +990,7 @@ namespace MLFramework
         }
         public void SetReward(float reward, bool evenIfActionEnded = false)
         {
-            if (behavior == BehaviorType.Manual)
+            if (behavior == BehaviorType.Manual || behavior == BehaviorType.Heuristic)
                 return;
             if (evenIfActionEnded == false && behavior == BehaviorType.Static)
                 return;
@@ -1047,7 +1058,7 @@ namespace MLFramework
         }
 
         //--------------------------------------SETTERS AND GETTERS--------------------------------------------//
-        public void SetFitnessTo(float value)
+        public void ForcedSetFitnessTo(float value)
         {
             this.network.SetFitness(0);
         }
@@ -1247,7 +1258,7 @@ namespace MLFramework
                 var script = team[i].script;
                 script.behavior = BehaviorType.Static;
                 script.network = new NeuralNetwork(brainModelPath);
-                script.SetFitnessTo(0f);
+                script.ForcedSetFitnessTo(0f);
 
                 //Mutate Half Of them in the beggining
                 if (i % 2 == 0)
@@ -2095,7 +2106,7 @@ namespace MLFramework
         {
             for (int i = 0; i < team.Length; i++)
             {
-                team[i].script.SetFitnessTo(0f);
+                team[i].script.ForcedSetFitnessTo(0f);
                 team[i].fitness = 0f;
             }
         }
