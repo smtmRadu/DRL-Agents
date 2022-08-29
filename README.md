@@ -12,5 +12,5 @@ The use of this framework is done by overriding some methods where you send obse
 -NeuralNetwork is more performant starting with version 2.9<br />
 -Multienvironmental Training started in version 3.7<br />
 -Heuristic Training released in version 4.78<br />
--Framework ends withing v5.0<br />
-
+-Framework ends within v5.0<br />
+[-Possible optional Update -> Train by data files]
