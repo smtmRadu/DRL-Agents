@@ -870,8 +870,8 @@ namespace MLFramework
 
         [Space(20)]
         [Range(0, 1), Tooltip("TIP: keep the value resonable low")] public float learnRate = 0.01f;
-        [SerializeField, Tooltip("@read only")] private float error;
-        [SerializeField, Tooltip("@determines loss error form")] private LossFunctionType costType = LossFunctionType.Quadratic;
+        [SerializeField, Tooltip("@read only\n@shows average error of the current epoch")] private float error;
+        [SerializeField, Tooltip("@loss function type")] private LossFunctionType costType = LossFunctionType.Quadratic;
 
         //ONLY HEURISTIC 
         private List<Sample> batch = new List<Sample>();
