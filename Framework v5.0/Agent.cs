@@ -28,9 +28,9 @@ public class Agent : AgentBase
         //fill actionsOut in the reverse way of OnActionReceived()
         //actionsOut.SetAction(<index>,<action>);
     }
-    protected override void HeristicOnSceneReset()
+    protected override void HeuristicOnSceneReset()
     {
-        //[OPTIONAL] immediate actions after scene is reset on heuristic
+        //[OPTIONAL] is called automatically after EndAction() on Heuristic/Manual behavior
         //Example: randomly move scene objects (get reference through this script)
     }
 

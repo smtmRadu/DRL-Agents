@@ -876,7 +876,6 @@ namespace MLFramework
         //ONLY HEURISTIC 
         private List<Sample> batch = new List<Sample>();
         private int batchSize = 0;
-        private int maxBatchSize = 100_000;
         private bool dataIsCollected = false;
         float avgError = 0;
         //ErrorStatistic
@@ -893,10 +892,11 @@ namespace MLFramework
             //On heuristic and self the brains are made directly in CollectHeuristicData and SelfAction,this may cause in action lag
 
             startingEpochs = epochs;
-            if (behavior == BehaviorType.Heuristic)
+            if (behavior == BehaviorType.Manual || behavior == BehaviorType.Heuristic)
             {
                 HeuristicEnvironmentSetup();
-                Debug.Log("<color=#64de18>Collecting user training data...</color>");
+                if (behavior == BehaviorType.Heuristic)
+                    Debug.Log("<color=#64de18>Collecting user training data...</color>");
 
             }
         }
@@ -979,9 +979,6 @@ namespace MLFramework
             sample.expectedOutputs = desiredOutputs.GetBuffer();
             batch.Add(sample);
             batchSize++;
-
-            if (batchSize >= maxBatchSize)
-                sessionLength = 0;
         }
         void ProcessHeuristicData()
         {
@@ -1018,8 +1015,6 @@ namespace MLFramework
         {
             if (!dataIsCollected || epochs == 0)
                 return;
-            if (error > maxErrorFound)
-                maxErrorFound = error;
             Gizmos.matrix = errorGraph.localToWorldMatrix;
             float xSize = errorGraph.rect.width;
             float ySize = errorGraph.rect.height / 2;
@@ -1040,9 +1035,24 @@ namespace MLFramework
             //X
             Gizmos.DrawLine(new Vector2(-zeroX, 0), new Vector2(-zeroX - arrowLength, -arrowLength));
             Gizmos.DrawLine(new Vector2(-zeroX, 0), new Vector2(-zeroX - arrowLength, +arrowLength));
+            float xUnit;
+            float yUnit;
+            if (error > maxErrorFound)
+            {
+                maxErrorFound = error;
+                xUnit = xSize / startingEpochs;
+                yUnit = ySize / maxErrorFound;
+                for (int i = 0; i < errorPoints.Count; i++)
+                {
+                    errorPoints[i] = new Vector2(zeroX + xUnit * i, yUnit * error);
+                }
+            }
+            else
+            {
+                xUnit = xSize / startingEpochs;
+                yUnit = ySize / maxErrorFound;
+            }
 
-            float xUnit = xSize / startingEpochs;
-            float yUnit = ySize / maxErrorFound;
 
             Vector2 newErrorPoint = new Vector2(zeroX + xUnit * errorPoints.Count, yUnit * error);
             errorPoints.Add(newErrorPoint);
@@ -1067,13 +1077,15 @@ namespace MLFramework
                 return;
 
             environmentInitialTransform = new List<PosAndRot>();
-
+            if (environmentInitialTransform == null)
+                Debug.Log("IS NULL");
             GetAllTransforms(Environment.transform, ref environmentInitialTransform);
-
         }
         private void ResetEnvironmentToInitialPosition()
         {
-            ApplyAllTransforms(ref Environment, in environmentInitialTransform);
+            if (Environment == null)
+                return;
+            ApplyAllTransforms(ref Environment, environmentInitialTransform);
         }
         //-------------------------------------------FOR USE BY USER----------------------------------------------//
         protected virtual void Heuristic(ref ActionBuffer actionsOut)
@@ -1123,9 +1135,7 @@ namespace MLFramework
         {
             if (behavior == BehaviorType.Self)
                 behavior = BehaviorType.Static;
-            else if (behavior == BehaviorType.Manual)
-                ResetToInitialPosition();
-            else if (behavior == BehaviorType.Heuristic)
+            else if (behavior == BehaviorType.Manual || behavior == BehaviorType.Heuristic)
             {
                 ResetToInitialPosition();
                 ResetEnvironmentToInitialPosition();
@@ -1174,7 +1184,7 @@ namespace MLFramework
             this.transform.localScale = trnsfrm.scale;
             this.transform.rotation = trnsfrm.rotation;
         }
-        static private void ApplyTransformTo(ref GameObject obj, PosAndRot trnsfrm)
+        static private void ApplyTransformTo(ref GameObject obj, in PosAndRot trnsfrm)
         {
             obj.transform.position = trnsfrm.position;
             obj.transform.localScale = trnsfrm.scale;
@@ -1192,7 +1202,7 @@ namespace MLFramework
         {
             parseCounter = 1;
             ApplyTransform(ref obj, fromList[0]);
-            AddChildsInitialTransform(ref obj, in fromList);
+            AddChildsInitialTransform(ref obj, fromList);
         }
 
         public void GetChildsTransforms(ref List<PosAndRot> list, UnityEngine.Transform obj)
@@ -1204,7 +1214,7 @@ namespace MLFramework
                 GetChildsTransforms(ref list, child);
             }
         }
-        public void AddChildsInitialTransform(ref GameObject obj, in List<PosAndRot> list)
+        public void AddChildsInitialTransform(ref GameObject obj, List<PosAndRot> list)
         {
             ///PARSE COUNTER USED SEPARATELY <IT MUST BE INITIALIZED WITH 0></IT>
             for (int i = 0; i < obj.transform.childCount; i++)
