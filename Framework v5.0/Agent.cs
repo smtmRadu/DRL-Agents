@@ -28,6 +28,11 @@ public class Agent : AgentBase
         //fill actionsOut in the reverse way of OnActionReceived()
         //actionsOut.SetAction(<index>,<action>);
     }
+    protected override void HeristicOnSceneReset()
+    {
+        //[OPTIONAL] immediate actions after scene is reset on heuristic
+        //Example: randomly move scene objects (get reference through this script)
+    }
 
     //Use in CollisionCollider2D, CollisionTrigger2D, Update(), etc. 
     //AddReward() - cumulative reward

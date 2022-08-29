@@ -16,8 +16,8 @@ public class Trainer : TrainerBase
     protected override void SetupTeam()
     {
         base.SetupTeam();
-        //Add different color for your AI's
-        //Color add is auto for agents with SpriteRenderer on the parent gameobject
+        //Add different colors for your AI's
+        //Color add is automatic for agents with SpriteRenderer on the parent gameobject
     }
     protected override void EnvironmentAction()
     {
@@ -30,7 +30,7 @@ public class Trainer : TrainerBase
     protected override void OnEpisodeEnd(ref AI ai)
     {
         //Modify each AI before Reseting Episode - Ex: Add postActions reward
-        // ai.agent - used to access the ai gameobject
+        // ai.agent - used to access the agent gameobject
         // ai.script - used to acces Agent Script 
         // ai.fitness - used to get it's current fitness
 
