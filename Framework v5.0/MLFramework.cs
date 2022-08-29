@@ -864,8 +864,9 @@ namespace MLFramework
 
         [Header("===== Heuristic Properties =====")]
         [Range(1, 1000), Tooltip("@number of parsings through the data collected.")] public uint epochs = 100;
-        [Range(0, 60), Tooltip("@data collection time.\n@data_size = sessionLength * FPS")] public float sessionLength = 30;
+        [Range(0, 180), Tooltip("@data collection time.\n@data_size = sessionLength * avgFPS")] public float sessionLength = 60;
         [Tooltip("@watch the progression of the error\n@if is noisy, decrease the learnRate\n@if stagnates, increase the learnRate")] public RectTransform errorGraph;
+        [Tooltip("@reset the environment transforms when agent action ended")] public GameObject Environment;
 
         [Space(20)]
         [Range(0, 1), Tooltip("TIP: keep the value resonable low")] public float learnRate = 0.01f;
@@ -876,20 +877,28 @@ namespace MLFramework
         private List<Sample> batch = new List<Sample>();
         private int batchSize = 0;
         private int maxBatchSize = 100_000;
-        private bool heurTrain = false;
+        private bool dataIsCollected = false;
         float avgError = 0;
         //ErrorStatistic
         float maxErrorFound = .01f;
         uint startingEpochs = 0;
         List<Vector2> errorPoints = new List<Vector2>();
+        //HeuristicEnvironment
+        private List<PosAndRot> environmentInitialTransform;
 
 
         protected virtual void Awake()
         {
             GetAllTransforms();
-            //On heuristic and self the brains are made directly in HeuristicAction and SelfAction,this may cause in action lag
+            //On heuristic and self the brains are made directly in CollectHeuristicData and SelfAction,this may cause in action lag
 
             startingEpochs = epochs;
+            if (behavior == BehaviorType.Heuristic)
+            {
+                HeuristicEnvironmentSetup();
+                Debug.Log("<color=#64de18>Collecting user training data...</color>");
+
+            }
         }
         protected virtual void Update()
         {
@@ -900,24 +909,10 @@ namespace MLFramework
             else if (behavior == BehaviorType.Manual)
                 ManualAction();
             else if (behavior == BehaviorType.Heuristic)
-                HeuristicAction();
+                CollectHeuristicData();
 
-            if (heurTrain)
-            {
-                if (epochs > 0)
-                { TrainFromSamples(); epochs--; error = avgError; }
-                else
-                {
-                    Debug.Log("<color=blue>HEURISTIC training has ended.</color>");
-                    NeuralNetwork.WriteBrain(network, path);
-
-                    NeuralNetwork.activation = activationType;
-                    NeuralNetwork.outputActivation = outputActivationType;
-                    NeuralNetwork.initialization = initializationType;
-
-                    heurTrain = false;
-                }
-            }
+            if (dataIsCollected)
+                ProcessHeuristicData();
         }
 
         void SelfAction()
@@ -947,23 +942,25 @@ namespace MLFramework
             Heuristic(ref buffer);
             OnActionReceived(in buffer);
         }
-        void HeuristicAction()
+
+        //-------------------------------------------HEURISTIC TRAINING--------------------------------------------------//
+        void CollectHeuristicData()
         {
             if (network == null)
             {
                 if (path == null || path == "" || new FileInfo(path).Length == 0)
                 {
-                    Debug.LogError("<color=red>HEURISTIC train cannot start because the Brain Path is invalid</color>");
+                    Debug.LogError("<color=red>Heuristic train cannot start because the Brain Path is invalid</color>");
                     return;
                 }
                 this.network = new NeuralNetwork(path);
             }
             if (sessionLength <= 0)
             {
-                Debug.Log("<color=green>Data was collected. Analyzing " + batchSize + " training samples for " + epochs + "epochs...</color>");
+                Debug.Log("<color=#64de18>Data heaped. Processing <color=#e405fc>" + batchSize + " </color>training samples for<color=#09eb7e> " + epochs + "</color> epochs...</color>");
                 behavior = BehaviorType.Static;
                 learnRate /= batchSize;
-                heurTrain = true;
+                dataIsCollected = true;
                 return;
             }
 
@@ -986,7 +983,27 @@ namespace MLFramework
             if (batchSize >= maxBatchSize)
                 sessionLength = 0;
         }
-        private void TrainFromSamples()
+        void ProcessHeuristicData()
+        {
+            if (epochs > 0)
+            { ProcessHeuristicSample(); epochs--; error = avgError; }
+            else
+            {
+                Debug.Log("<color=#4db8ff>Heuristic training has ended succesfully.</color><color=grey> Watch your agent current performance.</color>");
+                NeuralNetwork.WriteBrain(network, path);
+
+                NeuralNetwork.activation = activationType;
+                NeuralNetwork.outputActivation = outputActivationType;
+                NeuralNetwork.initialization = initializationType;
+
+                dataIsCollected = false;
+
+                ResetEnvironmentToInitialPosition();
+                ResetToInitialPosition();
+                behavior = BehaviorType.Self;
+            }
+        }
+        private void ProcessHeuristicSample()
         {
             avgError = 0;
             foreach (Sample sample in batch)
@@ -996,9 +1013,10 @@ namespace MLFramework
             }
             avgError /= batchSize;
         }
+
         private void OnDrawGizmos()
         {
-            if (!heurTrain || epochs == 0)
+            if (!dataIsCollected || epochs == 0)
                 return;
             if (error > maxErrorFound)
                 maxErrorFound = error;
@@ -1043,7 +1061,21 @@ namespace MLFramework
 
 
         }
-        //-------------------------------------------FOR USE WHEN OVERRIDING----------------------------------------------//
+        private void HeuristicEnvironmentSetup()
+        {
+            if (Environment == null)
+                return;
+
+            environmentInitialTransform = new List<PosAndRot>();
+
+            GetAllTransforms(Environment.transform, ref environmentInitialTransform);
+
+        }
+        private void ResetEnvironmentToInitialPosition()
+        {
+            ApplyAllTransforms(ref Environment, in environmentInitialTransform);
+        }
+        //-------------------------------------------FOR USE BY USER----------------------------------------------//
         protected virtual void Heuristic(ref ActionBuffer actionsOut)
         {
 
@@ -1057,7 +1089,7 @@ namespace MLFramework
 
         }
 
-        //-------------------------------------------FOR USE WHEN TRAINING-------------------------------------------------//
+
         public void AddReward(float reward, bool evenIfActionEnded = false)
         {
             if (behavior == BehaviorType.Manual || behavior == BehaviorType.Heuristic)
@@ -1088,8 +1120,13 @@ namespace MLFramework
         {
             if (behavior == BehaviorType.Self)
                 behavior = BehaviorType.Static;
-            else if (behavior == BehaviorType.Manual || behavior == BehaviorType.Heuristic)
+            else if (behavior == BehaviorType.Manual)
                 ResetToInitialPosition();
+            else if (behavior == BehaviorType.Heuristic)
+            {
+                ResetToInitialPosition();
+                ResetEnvironmentToInitialPosition();
+            }
         }
 
         //--------------------------------------------POSITIONING-----------------------------------------------//
@@ -1139,6 +1176,49 @@ namespace MLFramework
             obj.transform.localScale = trnsfrm.scale;
             obj.transform.rotation = trnsfrm.rotation;
         }
+
+        #region ENVIRONMENT POSITIONING
+        public void GetAllTransforms(UnityEngine.Transform obj, ref List<PosAndRot> inList)
+        {
+            parseCounter = 1;
+            inList.Add(new PosAndRot(obj.position, obj.localScale, obj.rotation));
+            GetChildsTransforms(ref inList, obj);
+        }
+        public void ApplyAllTransforms(ref GameObject obj, in List<PosAndRot> fromList)
+        {
+            parseCounter = 1;
+            ApplyTransform(ref obj, fromList[0]);
+            AddChildsInitialTransform(ref obj, in fromList);
+        }
+
+        public void GetChildsTransforms(ref List<PosAndRot> list, UnityEngine.Transform obj)
+        {
+            foreach (UnityEngine.Transform child in obj)
+            {
+                PosAndRot tr = new PosAndRot(child.position, child.localScale, child.rotation);
+                list.Add(new PosAndRot(child.position, child.localScale, child.rotation));
+                GetChildsTransforms(ref list, child);
+            }
+        }
+        public void AddChildsInitialTransform(ref GameObject obj, in List<PosAndRot> list)
+        {
+            ///PARSE COUNTER USED SEPARATELY <IT MUST BE INITIALIZED WITH 0></IT>
+            for (int i = 0; i < obj.transform.childCount; i++)
+            {
+                GameObject child = obj.transform.GetChild(i).gameObject;
+                ApplyTransform(ref child, list[parseCounter]);
+                parseCounter++;
+                AddChildsInitialTransform(ref child, list);
+            }
+        }
+        public void ApplyTransform(ref GameObject obj, PosAndRot trnsfrm)
+        {
+            obj.transform.position = trnsfrm.position;
+            obj.transform.localScale = trnsfrm.scale;
+            obj.transform.rotation = trnsfrm.rotation;
+        }
+        #endregion
+
 
         //--------------------------------------SETTERS AND GETTERS--------------------------------------------//
         public void ForcedSetFitnessTo(float value)
@@ -1199,6 +1279,8 @@ namespace MLFramework
 
             }
         }
+
+
     }
     public class TrainerBase : UnityEngine.MonoBehaviour
     {
@@ -1238,7 +1320,7 @@ namespace MLFramework
 
         private int environmentsNumber = 0; private GameObject[] Environments;
         private int currentEnvironment = 0;
-        protected List<PosAndRot>[] environmentsInitialTransform;//Every list is all transforms of a single environment
+        protected List<PosAndRot>[] environmentsInitialTransform;//Every list is all transforms of a single environmentType
         protected List<PosAndRot>[] agentsInitialTransform;//Every list is all transforms of a single agent, Both use the same index
         int parseCounter = 0;
 
