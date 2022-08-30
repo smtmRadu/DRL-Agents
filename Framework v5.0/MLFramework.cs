@@ -893,12 +893,7 @@ namespace MLFramework
 
             startingEpochs = epochs;
             if (behavior == BehaviorType.Manual || behavior == BehaviorType.Heuristic)
-            {
                 HeuristicEnvironmentSetup();
-                if (behavior == BehaviorType.Heuristic)
-                    Debug.Log("<color=#64de18>Collecting user training data...</color>");
-
-            }
         }
         protected virtual void Update()
         {
@@ -954,6 +949,8 @@ namespace MLFramework
                     return;
                 }
                 this.network = new NeuralNetwork(path);
+                Debug.Log("<color=#64de18>Collecting user training data...</color>");
+                HeuristicOnSceneReset();
             }
             if (sessionLength <= 0)
             {
@@ -1039,12 +1036,13 @@ namespace MLFramework
             float yUnit;
             if (error > maxErrorFound)
             {
+                float oldMaxError = maxErrorFound;
                 maxErrorFound = error;
                 xUnit = xSize / startingEpochs;
                 yUnit = ySize / maxErrorFound;
                 for (int i = 0; i < errorPoints.Count; i++)
                 {
-                    errorPoints[i] = new Vector2(zeroX + xUnit * i, yUnit * error);
+                    errorPoints[i] = new Vector2(zeroX + xUnit * i, errorPoints[i].y * (oldMaxError / maxErrorFound));
                 }
             }
             else
@@ -1331,8 +1329,10 @@ namespace MLFramework
 
         private NeuralNetwork modelNet;
         protected AI[] team;
+        private GameObject[] Environments;
 
-        private int environmentsNumber = 0; private GameObject[] Environments;
+
+        private int environmentsNumber = 0;
         private int currentEnvironment = 0;
         protected List<PosAndRot>[] environmentsInitialTransform;//Every list is all transforms of a single environmentType
         protected List<PosAndRot>[] agentsInitialTransform;//Every list is all transforms of a single agent, Both use the same index
@@ -1420,6 +1420,7 @@ namespace MLFramework
         {
             //Instatiate AI
             team = new AI[teamSize];
+            AIModel.GetComponent<Agent>().behavior = BehaviorType.Static;
             for (int i = 0; i < team.Length; i++)
             {
                 GameObject member = Instantiate(AIModel, AIModel.transform.position, Quaternion.identity);
@@ -1437,7 +1438,6 @@ namespace MLFramework
             for (int i = 0; i < team.Length; i++)
             {
                 var script = team[i].script;
-                script.behavior = BehaviorType.Static;
                 script.network = new NeuralNetwork(brainModelPath);
                 script.ForcedSetFitnessTo(0f);
 
