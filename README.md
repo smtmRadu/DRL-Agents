@@ -1,7 +1,8 @@
 # MLAgent
 Set of C# Scripts that can be used to train your AIs in Unity Engine.
 Use the latest stable version of the Framework's folder ONLY.
-![Image](NNPNG.png)
+![nnPNG](https://user-images.githubusercontent.com/67599940/187903725-1f0fa9e6-9b85-49fd-819b-4c453c0d2265.png)
+
 Neural Network Class contains the code for instantiating a Neural Network, Trainer class implements the Reinforcent Learning and Agent Class the Heuristics.
 
 The use of this framework is done by overriding some methods where you send observations (inputs) and receive actions (outputs), creating a suitable, stable and well designed training environment or by choosing a heuristic approach. Check the documentation "How to use the Framework.docx" placed inside the folder of the version used.<br />
