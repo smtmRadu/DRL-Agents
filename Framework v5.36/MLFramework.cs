@@ -1770,7 +1770,7 @@ namespace MLFramework
                     StartTransform.gameObject.SetActive(false);
                 }
                 if(interactionType == TrainingType.MoreAgentsPerEnvironment)
-                    episodesPerEvolution = environmentsNumber;
+                    episodesPerEvolution *= environmentsNumber;
             }
 
             if (interactionType == TrainingType.OneAgentPerEnvironment)
@@ -1891,7 +1891,7 @@ namespace MLFramework
             statData.Append("</color>\n");
 
             statData.Append("<b>|Generation: ");
-            statData.Append(currentEpisode / episodesPerEvolution);
+            statData.Append((currentEpisode-1) / episodesPerEvolution);
             statData.Append("\n");
             {//Colorize
                 Color tlcolor = Color.Lerp(Color.red, Color.green, timeLeft / maxTimePerEpisode);
@@ -2147,14 +2147,14 @@ namespace MLFramework
             float thisGenerationBestFitness = team[team.Length - 1].fitness;
             if (thisGenerationBestFitness < this.modelNet.GetFitness())
             {
-                statistic.Append("\n                    Evolution - NO  | This Gen MaxFitness: ");
+                statistic.Append("\n                    Evolution - NO  | This generation Max Fitness: ");
                 statistic.Append(thisGenerationBestFitness);
                 statistic.Append(" < ");
                 statistic.Append(this.modelNet.GetFitness());
             }
             else
             {
-                statistic.Append("\n                    Evolution - YES | This Gen MaxFitness: ");
+                statistic.Append("\n                    Evolution - YES | This generation Max Fitness: ");
                 statistic.Append(thisGenerationBestFitness);
                 statistic.Append(" > ");
                 statistic.Append(this.modelNet.GetFitness());
@@ -2210,14 +2210,14 @@ namespace MLFramework
             float thisGenerationBestFitness = team[team.Length - 1].fitness;
             if (thisGenerationBestFitness < this.modelNet.GetFitness())
             {
-                statistic.Append("\n                    Evolution - NO  | This Gen MaxFitness: ");
+                statistic.Append("\n                    Evolution - NO  | This generation Max Fitness: ");
                 statistic.Append(thisGenerationBestFitness);
                 statistic.Append(" < ");
                 statistic.Append(this.modelNet.GetFitness());
             }
             else
             {
-                statistic.Append("\n                    Evolution - YES | This Gen MaxFitness: ");
+                statistic.Append("\n                    Evolution - YES | This generation Max Fitness: ");
                 statistic.Append(thisGenerationBestFitness);
                 statistic.Append(" > ");
                 statistic.Append(this.modelNet.GetFitness());
@@ -2281,14 +2281,14 @@ namespace MLFramework
             float thisGenerationBestFitness = team[team.Length - 1].fitness;
             if (thisGenerationBestFitness < this.modelNet.GetFitness())
             {
-                statistic.Append("\n                    Evolution - NO  | This Gen MaxFitness: ");
+                statistic.Append("\n                    Evolution - NO  | This generation Max Fitness: ");
                 statistic.Append(thisGenerationBestFitness);
                 statistic.Append(" < ");
                 statistic.Append(this.modelNet.GetFitness());
             }
             else
             {
-                statistic.Append("\n                    Evolution - YES | This Gen MaxFitness: ");
+                statistic.Append("\n                    Evolution - YES | This generation Max Fitness: ");
                 statistic.Append(thisGenerationBestFitness);
                 statistic.Append(" > ");
                 statistic.Append(this.modelNet.GetFitness());
@@ -2654,7 +2654,7 @@ namespace MLFramework
         NotSpecified,
 
         //Agents overlap eachother, environmental objects are common
-        [Tooltip("@agents are overlapping in the same environment(s)\n@episodesPerEvolution = number of environments when environments > 1")]
+        [Tooltip("@agents are overlapping in the same environment(s)")]
         MoreAgentsPerEnvironment,
 
         //Agents train separately, environmental objects are personal for each agent
