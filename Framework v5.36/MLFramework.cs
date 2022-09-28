@@ -873,7 +873,7 @@ namespace MLFramework
 
 
         [Space(20)]//ADVANCED
-        [SerializeField, Tooltip("@read only\n@shows average error of the current epoch")] private float error;
+        [SerializeField, Tooltip("@read only\n@shows average error of the current epoch\nsum of all outputs errors")] private float error;
         [Range(0, 1), Tooltip("@modification strength per epoch")] public float learnRate = 0.01f;
         [Tooltip("@loss function type")] public LossFunctionType costType = LossFunctionType.Quadratic;
 
