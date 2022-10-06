@@ -1,4 +1,4 @@
-# MLAgent
+# MLAgents
 Set of C# Scripts that can be used to train your AIs in Unity Engine.
 Use the latest stable version of the Framework's folder ONLY.
 ![nnPNG](https://user-images.githubusercontent.com/67599940/187903725-1f0fa9e6-9b85-49fd-819b-4c453c0d2265.png)
