@@ -1454,7 +1454,7 @@ namespace MLFramework
         [Header("===== Models =====")]
         [Tooltip("Agent model gameObject used as the ai")] public GameObject AIModel;
         [Tooltip("Brain model used to start the training with")] public string brainModelPath;
-        [Tooltip("@resets the dynamic environmental object's positions\n@requires specific Tag applied on the AI")] public TrainingType interactionType = TrainingType.NotSpecified;
+        [Tooltip("@resets the dynamic environmental object's positions")] public TrainingType interactionType = TrainingType.NotSpecified;
 
         [Space(20)]
         [Tooltip("The model used updates in the first next generation\n@tip: use a copy of the brain")] public bool resetBrainModelFitness = false;
@@ -1481,7 +1481,6 @@ namespace MLFramework
 
 
 
-
         private NeuralNetwork modelNet;
         protected AI[] team;
         private GameObject[] Environments;
@@ -1491,7 +1490,6 @@ namespace MLFramework
         protected List<PosAndRot>[] agentsInitialTransform;//Every item is the position for a single environment. The item is the AI's initial position for environment i
 
         int parseCounter = 0;
-
         bool startTraining = true;
 
 
@@ -1755,7 +1753,7 @@ namespace MLFramework
                 UnityEngine.Transform Start = null;
                 foreach (Transform child in Environments[0].transform)
                 {
-                    if (child.CompareTag(AIModel.tag))
+                    if (child.GetComponent<Agent>() == true)
                     { Start = child; break; }
                 }
                 if (Start == null)//If the monoenvironment doesn't have a start, take as start the AIModel
@@ -1777,7 +1775,7 @@ namespace MLFramework
 
                     foreach (Transform child in Environments[i].transform)
                     {
-                        if (child.CompareTag(AIModel.tag))
+                        if (child.GetComponent<Agent>() == true)
                         { StartTransform = child; break; }
                     }
 
@@ -2676,11 +2674,11 @@ namespace MLFramework
         NotSpecified,
 
         //Agents overlap eachother, environmental objects are common
-        [Tooltip("@agents are overlapping in the same environment(s)\n@requires specific Tag for the ai")]
+        [Tooltip("@agents are overlapping in the same environment(s)\nif no start, agent model is used as a starting position")]
         MoreAgentsPerEnvironment,
 
         //Agents train separately, environmental objects are personal for each agent
-        [Tooltip("@one agent per each environment found\nusually used for letting just 1 agent interact with the environment\n@requires specific Tag for the ai")]
+        [Tooltip("@one agent per each environment found\nusually used for letting just 1 agent interact with the environment")]
         OneAgentPerEnvironment,
     }
     public enum BehaviorType
