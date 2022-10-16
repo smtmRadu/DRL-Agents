@@ -7,6 +7,7 @@ public class Agent : AgentBase
 
     protected override void Awake()
     {
+        //Application.runInBackground = true;
         base.Awake();
     }
     protected override void Update()
