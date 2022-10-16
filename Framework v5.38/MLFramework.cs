@@ -1480,7 +1480,6 @@ namespace MLFramework
         public MutationStrategy mutationStrategy = MutationStrategy.Classic;
 
 
-
         private NeuralNetwork modelNet;
         protected AI[] team;
         private GameObject[] Environments;
@@ -2479,6 +2478,7 @@ namespace MLFramework
             for (int i = team.Length - 1; i >= howMany; i--)
             {
                 string path = team[i].script.GetPath();
+                path = path.Replace("Neural_Networks", "Saves");
                 NeuralNetwork net = new NeuralNetwork(team[i].script.network);//Here was made a copy due to some weird write access error
                 NeuralNetwork.WriteBrain(net, path);
             }
