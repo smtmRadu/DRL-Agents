@@ -1468,7 +1468,7 @@ namespace MLFramework
         List<float> averageResults;//memorize avg results for every episode
 
         [Space, Header("===== Training Settings =====")]
-        [Range(3, 300)] public int teamSize = 5;//IT cannot be 1 or 2, otherwise strategies will not work
+        [Range(3, 1000)] public int teamSize = 5;//IT cannot be 1 or 2, otherwise strategies will not work
         [Range(1, 10), Tooltip("Episodes needed to run until passing to the next Generation\n@TIP: divide the reward given by this number")] public int episodesPerEvolution = 1;
         [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 100; private int currentEpisode = 1;
         [Range(1, 1000), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 100f; float timeLeft;
@@ -1687,8 +1687,8 @@ namespace MLFramework
                 }
                 ResetFitEverywhere();
             }
-
-            NextEnvironment();
+            if (interactionType != TrainingType.NotSpecified)
+                NextEnvironment();
             ResetEnvironmentTransform();
             ResetAgentsTransform();
 
