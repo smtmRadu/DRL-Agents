@@ -49,6 +49,7 @@ namespace MLFramework
             InitializeWeights(false);
             SetWeightsWith(copyNN.weights);
             SetBiasesWith(copyNN.biases);
+            SetFitness(copyNN.GetFitness());
         }
         public NeuralNetwork(string path)
         {
@@ -1961,7 +1962,6 @@ namespace MLFramework
                 line.Append("\n");
                 statData.AppendLine(line.ToString());
             }
-
             Labels.text = statData.ToString();
         }
         private void OnDrawGizmos()
@@ -2474,7 +2474,7 @@ namespace MLFramework
                 Directory.CreateDirectory(saveDir);
 
             int howMany = (int)((float)team.Length - Mathf.Sqrt(team.Length));
-            SortTeam();
+
             for (int i = team.Length - 1; i >= howMany; i--)
             {
                 string path = team[i].script.GetPath();
