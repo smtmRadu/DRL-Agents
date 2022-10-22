@@ -1,5 +1,5 @@
 # MLAgents
-Unity add-on that can be used to train your AIs in Unity Engine. In pending in Unity Assets Store.
+Open-source add-on project that can be used to train your AIs in Unity Engine. In pending in Unity Assets Store.
 Use the latest stable version of the Framework's folder ONLY.
 ![nnPNG](https://user-images.githubusercontent.com/67599940/187903725-1f0fa9e6-9b85-49fd-819b-4c453c0d2265.png)
 
