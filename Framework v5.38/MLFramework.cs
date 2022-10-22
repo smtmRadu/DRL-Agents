@@ -17,7 +17,6 @@ using UnityEngine.UIElements;
 using System.Collections.Concurrent;
 using System.Runtime.Serialization;
 
-
 namespace MLFramework
 {
     //v 5.38
@@ -58,6 +57,17 @@ namespace MLFramework
                 Debug.LogError("<color=red>The training cannot start! Reason: Brain Model uploaded file is empty</color>");
                 return;
             }
+            //JSON serialization doesn't work. Also, ToJson() serialize just public fields of the class.
+            /* string json = System.IO.File.ReadAllText(path);
+           NeuralNetwork copyNN = JsonUtility.FromJson<NeuralNetwork>(json);
+           InitializeLayers(copyNN.layers);
+           InitializeNeuronsAndBiases(false);
+           InitializeWeights(false);
+           SetWeightsWith(copyNN.weights);
+           SetBiasesWith(copyNN.biases);
+           SetFitness(copyNN.GetFitness());
+           return;*/
+
             //For each line, there is 1 more element that was read when splitting, so kill it everywhere
             List<string> fileLines = File.ReadAllLines(path).ToList();
 
@@ -127,6 +137,13 @@ namespace MLFramework
         }
         public static void WriteBrain(in NeuralNetwork net, string path)
         {
+            //Json serialization does not support multidimensionalArrays
+            /*string json = JsonUtility.ToJson(net);
+            path = path.Substring(0, path.Length - 4) + ".json";
+            System.IO.File.WriteAllText(path, json);
+            return;*/
+
+
             StringBuilder data = new StringBuilder();
 
             //AddLayers
@@ -1459,7 +1476,7 @@ namespace MLFramework
 
         [Space(20)]
         [Tooltip("The model used updates in the first next generation\n@tip: use a copy of the brain")] public bool resetBrainModelFitness = false;
-        [Tooltip("@save networks of best Ai's before moving to the next generation.\n@number of saves = sqrt(Team Size).\n@folder: /Saves/.")] public bool saveBrains = false;
+        [Tooltip("@save networks of best Ai's before moving to the next generation.\n@number of saves = sqrt(Team Size).\n@folder: /Saves/.\n@last file saved is the best AI")] public bool saveBrains = false;
 
         [Header("===== Statistics Display =====")]
         [Tooltip("First ObjectOfType<Camera>")] public bool cameraFollowsBestAI = true; GameObject cam; bool isOrtographic; Vector3 perspectiveOffset;
@@ -1469,7 +1486,7 @@ namespace MLFramework
         List<float> averageResults;//memorize avg results for every episode
 
         [Space, Header("===== Training Settings =====")]
-        [Range(3, 1000)] public int teamSize = 5;//IT cannot be 1 or 2, otherwise strategies will not work
+        [Range(3, 1000)] public int teamSize = 5;//IT cannot be 1 or 2, otherwise strategies will not work (if there are not 3, strategy 2 causes trouble)
         [Range(1, 10), Tooltip("Episodes needed to run until passing to the next Generation\n@TIP: divide the reward given by this number")] public int episodesPerEvolution = 1;
         [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 100; private int currentEpisode = 1;
         [Range(1, 1000), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 100f; float timeLeft;
@@ -2475,7 +2492,8 @@ namespace MLFramework
 
             int howMany = (int)((float)team.Length - Mathf.Sqrt(team.Length));
 
-            for (int i = team.Length - 1; i >= howMany; i--)
+            SortTeam();
+            for (int i = howMany; i <= team.Length - 1; i++)
             {
                 string path = team[i].script.GetPath();
                 path = path.Replace("Neural_Networks", "Saves");
@@ -2485,7 +2503,38 @@ namespace MLFramework
 
         }
     }
+    class JSONSaver
+    {
+        string path;
+        object obj;
 
+        public JSONSaver(object @object, string path)
+        {
+            this.path = path;
+            path += ".json";
+            this.obj = @object;
+        }
+        public void Save()
+        {
+            string json = JsonUtility.ToJson(obj);
+            System.IO.File.WriteAllText(path, json);
+        }
+        public void Load()
+        {
+            string json = System.IO.File.ReadAllText(path);
+            object obj = JsonUtility.FromJson<object>(json);
+        }
+        public object GetObject()
+        {
+            return obj;
+        }
+        public void ChangePath(string newPath)
+        {
+            this.path = newPath;
+        }
+
+
+    }
     public struct AI
     {
         public GameObject agent;
@@ -2796,4 +2845,5 @@ namespace MLFramework
         [Tooltip("@use data from the file below")]
         Learn,
     }
+
 }
