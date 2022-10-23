@@ -19,7 +19,7 @@ using System.Runtime.Serialization;
 
 namespace MLFramework
 {
-    //v 5.38
+    //v 5.38.1 patched
     public class NeuralNetwork
     {
         public static ActivationFunctionType activation = ActivationFunctionType.Tanh;
@@ -1387,7 +1387,7 @@ namespace MLFramework
                 return network.GetFitness();
             else return 0f;
         }
-        public string GetPath()
+        public string GetPath(string specificName = null)
         {
             StringBuilder pathsb = new StringBuilder();
             pathsb.Append(Application.streamingAssetsPath);
@@ -1395,10 +1395,17 @@ namespace MLFramework
 
             if (!Directory.Exists(pathsb.ToString()))
                 Directory.CreateDirectory(pathsb.ToString());
-
-            pathsb.Append("NeuralNetworkID");
-            pathsb.Append(((int)this.gameObject.GetInstanceID()) * (-1));
-            pathsb.Append(".txt");
+            if (specificName == null)
+            {
+                pathsb.Append("NeuralNetworkID");
+                pathsb.Append(((int)this.gameObject.GetInstanceID()) * (-1));
+                pathsb.Append(".txt");
+            }
+            else
+            {
+                pathsb.Append(specificName);
+                pathsb.Append(".txt");
+            }
 
 
             return pathsb.ToString();
@@ -1427,29 +1434,30 @@ namespace MLFramework
         //---------------------------------------------OPTIONAL---------------------------------------------------//
         void BUTTONSaveBrain()
         {
-            if (SaveBrain == true)
+            if (SaveBrain == false)
+                return;
+
+            SaveBrain = false;
+            if (network != null)
+                NeuralNetwork.WriteBrain(network, GetPath());
+            else
             {
-                SaveBrain = false;
-                if (network != null)
-                    NeuralNetwork.WriteBrain(network, GetPath());
-                else
-                {
-                    //CreateBrain and Write it
-                    List<int> lay = new List<int>();
-                    lay.Add(sensorSize);
+                //CreateBrain and Write it
+                List<int> lay = new List<int>();
+                lay.Add(sensorSize);
 
-                    if (hiddenLayers != null)
-                        foreach (int neuronsNumber in hiddenLayers)
-                        {
-                            lay.Add(neuronsNumber);
-                        }
+                if (hiddenLayers != null)
+                    foreach (int neuronsNumber in hiddenLayers)
+                    {
+                        lay.Add(neuronsNumber);
+                    }
 
-                    lay.Add(actionSize);
-                    this.network = new NeuralNetwork(lay.ToArray());
-                    NeuralNetwork.WriteBrain(network, GetPath());
-                }
-
+                lay.Add(actionSize);
+                this.network = new NeuralNetwork(lay.ToArray());
+                NeuralNetwork.WriteBrain(network, GetPath(path == null || path == " " ? null : path));
             }
+
+
         }
         private void ConvertStrArrToFloatArr(string[] str, ref float[] arr)
         {
@@ -1476,7 +1484,7 @@ namespace MLFramework
 
         [Space(20)]
         [Tooltip("The model used updates in the first next generation\n@tip: use a copy of the brain")] public bool resetBrainModelFitness = false;
-        [Tooltip("@save networks of best Ai's before moving to the next generation.\n@number of saves = sqrt(Team Size).\n@folder: /Saves/.\n@last file saved is the best AI")] public bool saveBrains = false;
+        [Tooltip("@save networks of best Ai's before moving to the next generation.\n@number of saves = cbrt(Team Size).\n@folder: /Saves/.\n@last file saved is the best AI")] public bool saveBrains = false;
 
         [Header("===== Statistics Display =====")]
         [Tooltip("First ObjectOfType<Camera>")] public bool cameraFollowsBestAI = true; GameObject cam; bool isOrtographic; Vector3 perspectiveOffset;
@@ -2025,7 +2033,7 @@ namespace MLFramework
                     float xPos;
                     float yPos;
 
-                    xPos = zeroX + (i + 1) * xUnit;          //step
+                    xPos = zeroX + (i + 1) * xUnit * episodesPerEvolution; //episodesPerEvolution is added, otherwise the graph will remain to short on Xaxis
                     yPos = bestResults[i] * yUnit;   //fitness
                     Vector3 dotPos = new Vector3(xPos, yPos, 0f);
                     pointsPositions.Add(dotPos);
@@ -2050,7 +2058,7 @@ namespace MLFramework
                     float xPos;
                     float yPos;
 
-                    xPos = zeroX + (i + 1) * xUnit;          //step
+                    xPos = zeroX + (i + 1) * xUnit * episodesPerEvolution;    //step
                     yPos = averageResults[i] * yUnit;   //fitness
                     Vector3 dotPos = new Vector3(xPos, yPos, 0f);
                     pointsPositions.Add(dotPos);
@@ -2490,12 +2498,13 @@ namespace MLFramework
             if (!Directory.Exists(saveDir))
                 Directory.CreateDirectory(saveDir);
 
-            int howMany = (int)((float)team.Length - Mathf.Sqrt(team.Length));
+            int howMany = (int)((float)team.Length - Mathf.Pow(team.Length, 1f / 3f));
 
-            SortTeam();
+            string sessionID = "_" + Convert.ToChar(UnityEngine.Random.Range(65, 91)).ToString();
+            Mathf.Pow(team.Length, 0.33f);
             for (int i = howMany; i <= team.Length - 1; i++)
             {
-                string path = team[i].script.GetPath();
+                string path = team[i].script.GetPath("Agent_" + (i + 1).ToString() + sessionID);
                 path = path.Replace("Neural_Networks", "Saves");
                 NeuralNetwork net = new NeuralNetwork(team[i].script.network);//Here was made a copy due to some weird write access error
                 NeuralNetwork.WriteBrain(net, path);
@@ -2504,7 +2513,7 @@ namespace MLFramework
         }
     }
     class JSONSaver
-    {
+    {   //Not used until multi-dimensional arrays can be serialized as json
         string path;
         object obj;
 
@@ -2847,3 +2856,4 @@ namespace MLFramework
     }
 
 }
+

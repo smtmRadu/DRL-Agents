@@ -7,6 +7,7 @@ public class Trainer : TrainerBase
 
     protected override void Awake()
     {
+        Application.runInBackground = true;
         base.Awake();
     }
     protected override void Start()
