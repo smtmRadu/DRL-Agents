@@ -21,9 +21,9 @@ using static UnityEditor.Progress;
 
 namespace MLFramework
 {
-    // v5.4.1 patched
-    // softMax introduced verified 
-    // Manual precise output
+    // v5.4.2 patched
+    // softMax introduced verified full
+    // Manual mode precise output
     // more organized and documented code (summary+)
 
     public class NeuralNetwork
@@ -201,20 +201,21 @@ namespace MLFramework
                         value += weights[l - 1][n][p] * neurons[l - 1][p];
                     }
 
+                    neurons[l][n] = value;
+
                     if (l != layers.Length - 1)
                         neurons[l][n] = Activate(value, false);
-                    else
-                    {
-                        if (outputActivation == ActivationFunctionType.SoftMax)
-                            neurons[l][n] = Activate(value, true, neurons[l], n);
-                        else
-                            neurons[l][n] = Activate(value, true);
-                    }
+                    else if (outputActivation != ActivationFunctionType.SoftMax)
+                        neurons[l][n] = Activate(value, true);
+
+
 
                 }
-
+                if (l == layers.Length - 1 && outputActivation == ActivationFunctionType.SoftMax)
+                    Functions.ActivationFunctionSoftMax(ref neurons[layers.Length - 1]);
             }
-            return neurons[neurons.Length - 1]; //Return the last neuronsNumber (OUTPUT)
+
+            return neurons[neurons.Length - 1]; //Return the last neurons layer with their values (OUTPUT)
         }
 
         //-----------------INITIALIZATION-----------------//
@@ -363,12 +364,9 @@ namespace MLFramework
         }
 
         //--------------------------ACTIVATION---------------------------//
-        static float Activate(float value, bool outputLayer = false, float[] values = null, int index = -1)
+        static float Activate(float value, bool isOutputLayer = false)
         {
-            ActivationFunctionType where;
-            if (outputLayer)
-                where = outputActivation;
-            else where = activation;
+            ActivationFunctionType where = isOutputLayer == true ? outputActivation : activation;
 
             switch (where)
             {
@@ -384,18 +382,13 @@ namespace MLFramework
                     return Functions.ActivationFunctionBinaryStep(value);
                 case ActivationFunctionType.SiLU:
                     return Functions.ActivationFunctionSiLU(value);
-                case ActivationFunctionType.SoftMax:
-                    return Functions.ActivationFunctionSoftMax(values, index);
                 default:
                     return 0f;
             }
         }
-        static float ActivationDerivative(float value, bool output, float[] values = null, int index = -1)
+        static float ActivationDerivative(float value, bool isOutputLayer)
         {
-            ActivationFunctionType where;
-            if (output)
-                where = outputActivation;
-            else where = activation;
+            ActivationFunctionType where = isOutputLayer == true ? outputActivation : activation;
 
             switch (where)
             {
@@ -411,8 +404,6 @@ namespace MLFramework
                     return Functions.DerivativeBinaryStep(value);
                 case ActivationFunctionType.SiLU:
                     return Functions.DerivativeSiLU(value);
-                case ActivationFunctionType.SoftMax:
-                    return Functions.DerivativeSoftMax(values, index);
                 default:
                     return 0;
             }
@@ -520,9 +511,10 @@ namespace MLFramework
 
             for (int l = 1; l < layers.Length; l++)
             {
+                nodes[l] = new Node[neurons[l].Length];
+
                 for (int n = 0; n < neurons[l].Length; n++)
                 {
-                    nodes[l] = new Node[neurons[l].Length];
 
                     float value = biases[l][n];
                     int previousLayerNeuronsNumber = layers[l - 1];
@@ -531,24 +523,42 @@ namespace MLFramework
                         value += weights[l - 1][n][p] * neurons[l - 1][p];
                     }
 
-                    if (l != layers.Length - 1)
-                    {
-                        nodes[l][n].valueIn = value;
+                    nodes[l][n].valueIn = value;
+                    neurons[l][n] = value;//is activated after
+
+                    if (l < layers.Length - 1)
                         neurons[l][n] = Activate(value, false);
-                        nodes[l][n].valueOut = neurons[l][n];
-                    }
-                    else
+                    else if (outputActivation != ActivationFunctionType.SoftMax)
+                        neurons[l][n] = Activate(value, true);
+
+                    nodes[l][n].valueOut = neurons[l][n];
+
+                }
+
+                ///SPECIAL CASE
+                if (l == layers.Length - 1 && outputActivation == ActivationFunctionType.SoftMax)
+                {
+                    int neuronsOnLastLayer = layers[l];
+
+                    //Get values In  (it works also for values out because the values are passed normally without Activation =: softMax activation is made after all node values are known)
+                    float[] valuesIn = new float[neuronsOnLastLayer];
+
+                    for (int n = 0; n < neurons[l].Length; n++)
+                        valuesIn[n] = nodes[l][n].valueIn;
+
+                    //Activate them
+                    Functions.ActivationFunctionSoftMax(ref valuesIn);
+
+                    //Set values Out
+                    for (int n = 0; n < nodes[l].Length; n++)
                     {
-                        nodes[l][n].valueIn = value;
-                        neurons[l][n] = Activate(value, true, neurons[l], n);
+                        neurons[l][n] = valuesIn[n];
                         nodes[l][n].valueOut = neurons[l][n];
-
                     }
-
-
 
 
                 }
+
             }
             return neurons[neurons.Length - 1];
         }
@@ -592,45 +602,66 @@ namespace MLFramework
         {
             //calculates average error of output nodes
             //calculates output nodes costValue
-            float cost = 0;
-            float[] weightedValuesIn = null;
-            if (outputActivation == ActivationFunctionType.SoftMax)
-            {
-                weightedValuesIn = new float[nodes[nodes.Length - 1].Length];
-                for (int i = 0; i < nodes.Length - 1; i++)
-                {
-                    weightedValuesIn[i] = nodes[nodes.Length - 1][i].valueIn;
-                }
-            }
 
+            if (outputActivation == ActivationFunctionType.SoftMax)
+                return CalculateOutputNodesCostForSoftMax(outputs, expectedOutputs, lossfunc);
+
+            float cost = 0;
             for (int i = 0; i < outputs.Length; i++)
             {
-                float localCost = Functions.QuadraticNodeCost(outputs[i], expectedOutputs[i]);
-
 
                 if (lossfunc == LossFunctionType.Quadratic)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.QuadraticNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true, weightedValuesIn, i);
-                    cost += localCost;
-                    continue;
+                    nodes[nodes.Length - 1][i].costValue = Functions.QuadraticNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
+                    cost += Functions.QuadraticNodeCost(outputs[i], expectedOutputs[i]);
                 }
-                if (lossfunc == LossFunctionType.Absolute)
+                else if (lossfunc == LossFunctionType.Absolute)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.AbsoluteNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true, weightedValuesIn, i);
-                    cost += localCost;
-                    continue;
+                    nodes[nodes.Length - 1][i].costValue = Functions.AbsoluteNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
+                    cost += Functions.AbsoluteNodeCost(outputs[i], expectedOutputs[i]);
                 }
-                if (lossfunc == LossFunctionType.Quadratic)
+                else if (lossfunc == LossFunctionType.CrossEntropy)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.CrossEntropyNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true, weightedValuesIn, i);
+                    nodes[nodes.Length - 1][i].costValue = Functions.CrossEntropyNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
+                    float localCost = Functions.CrossEntropyNodeCost(outputs[i], expectedOutputs[i]);
                     cost += float.IsNaN(localCost) ? 0 : localCost;
-                    continue;
                 }
 
             }
 
             return cost;
         }//LOSS FUNCTION
+        float CalculateOutputNodesCostForSoftMax(float[] outputs, float[] expectedOutputs, LossFunctionType lossfunc)
+        {
+            float cost = 0f;
+            float[] derivatedInValues = new float[outputs.Length];
+            for (int i = 0; i < derivatedInValues.Length; i++)
+                derivatedInValues[i] = nodes[nodes.Length - 1][i].valueIn;
+            Functions.DerivativeSoftMax(ref derivatedInValues);
+
+            for (int i = 0; i < outputs.Length; i++)
+            {
+                if (lossfunc == LossFunctionType.Quadratic)
+                {
+                    nodes[nodes.Length - 1][i].costValue = Functions.QuadraticNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
+                    cost += Functions.QuadraticNodeCost(outputs[i], expectedOutputs[i]);
+                }
+                else if (lossfunc == LossFunctionType.CrossEntropy)
+                {
+                    nodes[nodes.Length - 1][i].costValue = Functions.CrossEntropyNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
+                    float localCost = Functions.CrossEntropyNodeCost(outputs[i], expectedOutputs[i]);
+                    cost += float.IsNaN(localCost) ? 0 : localCost;
+                }
+                else if (lossfunc == LossFunctionType.Absolute)
+                {
+                    nodes[nodes.Length - 1][i].costValue = Functions.AbsoluteNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
+                    cost += Functions.AbsoluteNodeCost(outputs[i], expectedOutputs[i]);
+                }
+            }
+
+            return cost;
+        }//LOSS FUNCTION USED WHEN SOFTMAX USED
+
         void CalculateNodesCost(int layer)
         {
             //IT DOES NOT APPLY FOR OUTPUT NEURON LAYER and INPUT LAYER
@@ -2365,14 +2396,18 @@ namespace MLFramework
         {
             return value * ActivationFunctionSigmoid(value);
         }
-        static public float ActivationFunctionSoftMax(float[] values, int index)
+        static public void ActivationFunctionSoftMax(ref float[] values)
         {
             float sum = 0f;
-            foreach (float item in values)
+            for (int i = 0; i < values.Length; i++)
             {
-                sum += Mathf.Exp(item);
+                values[i] = Mathf.Exp(values[i]);
+                sum += values[i];
             }
-            return Mathf.Exp(values[index]) / sum;
+            for (int i = 0; i < values.Length; i++)
+            {
+                values[i] /= sum;
+            }
         }
 
         //Derivatives
@@ -2405,15 +2440,19 @@ namespace MLFramework
             return (1 + Mathf.Exp(-value) + value * Mathf.Exp(-value)) / Mathf.Pow((1 + Mathf.Exp(-value)), 2);
             //return ActivationFunctionSigmoid(value) * (1 + value * (1 - ActivationFunctionSigmoid(value))); -> works the same
         }
-        static public float DerivativeSoftMax(float[] values, int index)
+        static public void DerivativeSoftMax(ref float[] values)
         {
             float sum = 0f;
+
             foreach (float item in values)
-            {
                 sum += Mathf.Exp(item);
+
+
+            for (int i = 0; i < values.Length; i++)
+            {
+                float ePowI = Mathf.Exp(values[i]);
+                values[i] = (ePowI * sum - ePowI * ePowI) / (sum * sum);
             }
-            float ePowI = Mathf.Exp(values[index]);
-            return (ePowI * sum - ePowI * ePowI) / (sum * sum);
         }
 
 
@@ -3074,4 +3113,3 @@ namespace MLFramework
         Learn,
     }
 }
-
