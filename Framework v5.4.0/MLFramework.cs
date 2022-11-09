@@ -377,13 +377,13 @@ namespace MLFramework
                     return Functions.ActivationFunctionTanh(value);
                 case ActivationFunctionType.Sigmoid:
                     return Functions.ActivationFunctionSigmoid(value);
-                case ActivationFunctionType.ReLU:
+                case ActivationFunctionType.Relu:
                     return Functions.ActivationFunctionReLU(value);
-                case ActivationFunctionType.LeakyReLU:
+                case ActivationFunctionType.LeakyRelu:
                     return Functions.ActivationFunctionLeakyReLU(value);
                 case ActivationFunctionType.BinaryStep:
                     return Functions.ActivationFunctionBinaryStep(value);
-                case ActivationFunctionType.SiLU:
+                case ActivationFunctionType.Silu:
                     return Functions.ActivationFunctionSiLU(value);
                 default:
                     return 0f;
@@ -399,13 +399,13 @@ namespace MLFramework
                     return Functions.DerivativeTanh(value);
                 case ActivationFunctionType.Sigmoid:
                     return Functions.DerivativeSigmoid(value);
-                case ActivationFunctionType.ReLU:
+                case ActivationFunctionType.Relu:
                     return Functions.DerivativeReLU(value);
-                case ActivationFunctionType.LeakyReLU:
+                case ActivationFunctionType.LeakyRelu:
                     return Functions.DerivativeLeakyReLU(value);
                 case ActivationFunctionType.BinaryStep:
                     return Functions.DerivativeBinaryStep(value);
-                case ActivationFunctionType.SiLU:
+                case ActivationFunctionType.Silu:
                     return Functions.DerivativeSiLU(value);
                 default:
                     return 0;
@@ -770,8 +770,10 @@ namespace MLFramework
 
             //Precaution
             if (activationType == ActivationFunctionType.SoftMax)
+            {
+                Debug.Log("<color=#4db8ff>SoftMax</color> cannot be an activation function for input or hidden layers. Now is set to <color=#4db8ff>Tanh</color>!");
                 activationType = ActivationFunctionType.Tanh;
-
+            }
             if (behavior == BehaviorType.Manual || behavior == BehaviorType.Heuristic)
                 HeuristicPreparation();
         }
@@ -3090,13 +3092,13 @@ namespace MLFramework
         Tanh,
         [Tooltip("@output: [0, +inf)\n" +
                  "@good for hidden layers - low computation")]
-        ReLU,
+        Relu,
         [Tooltip("@output: (-inf*,+inf)\n" +
                  "@best for hidden layers - low computation")]
-        LeakyReLU,
+        LeakyRelu,
         [Tooltip("@output: [-0.278, +inf)\n" +
                  "@smooth ReLU - higher computation")]
-        SiLU,
+        Silu,
         [Tooltip("@output: [0, 1]\n" +
                  "@output activation ONLY\n" +
                  "@good for decisional output")]
