@@ -21,11 +21,14 @@ using static UnityEditor.Progress;
 
 namespace MLFramework
 {
-    // v5.4.2 patched
-    // softMax introduced verified full
-    // Manual mode precise output
-    // more organized and documented code (summary+)
+    // v5.4.3
+    // +adds for sensor buffer
+    // +one agent per environment update
+    // +OnEpisodeBegin() updated
+    // +training data file direct name added
 
+    //5.4.2
+    //softmax added
     public class NeuralNetwork
     {
         public static ActivationFunctionType activation = ActivationFunctionType.Tanh;
@@ -710,8 +713,8 @@ namespace MLFramework
     {
         [Header("===== Agent Properties =====")]
         public BehaviorType behavior = BehaviorType.Static;
-        [Tooltip("@path of a brain model")] public string path = null;
-        [Tooltip("@if has brain: saves current brain data\n@else: creates a brain using Network Properties\n@folder: StreamingAssets/Neural_Networks. \n@default naming format")] public bool SaveBrain = false;
+        [Tooltip("@path of a brain model\n@name of the newly created brain model")] public string path = null;
+        [Tooltip("@if has brain: saves current brain data\n@else: creates a brain using Network Properties\n@folder: StreamingAssets/Neural_Networks. \n@default naming format or uses Path")] public bool SaveBrain = false;
         public NeuralNetwork network = null;
         List<PosAndRot> initialPosition = new List<PosAndRot>(); static int parseCounter = 0;
 
@@ -733,9 +736,9 @@ namespace MLFramework
         [Header("===== Heuristic Properties =====")]
         public HeuristicModule module = HeuristicModule.Append;
         [Tooltip("@do not append/write samples where expected outputs are null\n@expected outputs are considered null if all action vector elements are equal to 0")] public bool killStaticActions = false;
-        [Tooltip("@path of the training data file\nif empty, it creates a new file (using the default format)")] public string samplesPath = null;
+        [Tooltip("@path of the training data file\nname of the newly created training data file")] public string samplesPath = null;
         [Range(0, 300), Tooltip("@data collection time.\n@data_size = sessionLength * avgFPS")] public float sessionLength = 60;
-        [Range(1, 1000), Tooltip("@number of parsings through the training batch.")] public uint epochs = 100;
+        [Range(1, 1000), Tooltip("@number of parsings through the training batch.")] public uint epochs = 10;
         [Tooltip("@reset the environment transforms when agent action ended")] public GameObject Environment;
         [Tooltip("@watch the progression of the error\n@if is noisy, decrease the learnRate\n@if stagnates, increase the learnRate")] public RectTransform errorGraph;
 
@@ -867,11 +870,25 @@ namespace MLFramework
             }
             else
             {
-                if (samplesPath == null || samplesPath == "" || new FileInfo(samplesPath).Length == 0)
+                try
                 {
-                    samplesPath = GetHeuristicSamplesPath();
-                    Debug.Log("<color=64de18>Data file  <color=grey>" + samplesPath + "</color> created.</color>");
+                    FileInfo fi = new FileInfo(samplesPath);
+                    if (fi.Exists && fi.Length > 0)
+                    {
+                        Debug.Log("<color=#64de18>Collecting data from user...</color>");
+                        return;
+                    }
                 }
+                catch { }
+
+
+
+                if (samplesPath == null || samplesPath == "" || samplesPath == " ")
+                    samplesPath = GetHeuristicSamplesPath() + "TrainingData_" + UnityEngine.Random.Range(0, 1000).ToString() + ".txt";
+                else
+                    samplesPath = GetHeuristicSamplesPath() + samplesPath + ".txt";
+
+                Debug.Log("<color=64de18>Training data file  <color=grey>" + samplesPath + "</color> initialized.</color>");
                 Debug.Log("<color=#64de18>Collecting data from user...</color>");
             }
 
@@ -1272,7 +1289,7 @@ namespace MLFramework
                 return network.GetFitness();
             else return 0f;
         }
-        public string GetPath(string specificName = null)
+        public string GetPathWithName(string specificName = null)
         {
             StringBuilder pathsb = new StringBuilder();
             pathsb.Append(Application.streamingAssetsPath);
@@ -1297,19 +1314,11 @@ namespace MLFramework
         }
         private string GetHeuristicSamplesPath()
         {
-            StringBuilder pathsb = new StringBuilder();
-            pathsb.Append(Application.streamingAssetsPath);
-            pathsb.Append("/Heuristic_Samples/");
-
-            if (!Directory.Exists(pathsb.ToString()))
-                Directory.CreateDirectory(pathsb.ToString());
-
-            pathsb.Append("TrainingDataID");
-            pathsb.Append(((int)this.gameObject.GetInstanceID()) * (-1));
-            pathsb.Append(".txt");
-
-
-            return pathsb.ToString();
+            string path = Application.streamingAssetsPath;
+            path += "/Heuristic_Samples/";
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+            return path;
         }
         public List<PosAndRot> GetInitialPosition()
         {
@@ -1324,7 +1333,7 @@ namespace MLFramework
 
             SaveBrain = false;
             if (network != null)
-                NeuralNetwork.WriteBrain(network, GetPath());
+                NeuralNetwork.WriteBrain(network, GetPathWithName());
             else
             {
                 //CreateBrain and Write it
@@ -1339,10 +1348,8 @@ namespace MLFramework
 
                 lay.Add(actionSize);
                 this.network = new NeuralNetwork(lay.ToArray());
-                NeuralNetwork.WriteBrain(network, GetPath(path == null || path == " " ? null : path));
+                NeuralNetwork.WriteBrain(network, GetPathWithName(path == null || path == " " || path == "" ? null : path));
             }
-
-
         }
         private void ConvertStrArrToFloatArr(string[] str, ref float[] arr)
         {
@@ -1379,10 +1386,10 @@ namespace MLFramework
         List<float> averageResults;//memorize avg results for every episode
 
         [Space, Header("===== Training Settings =====")]
-        [Range(3, 1000)] public int teamSize = 5;//IT cannot be 1 or 2, otherwise strategies will not work (if there are not 3, strategy 2 causes trouble)
+        [Range(3, 1000)] public int teamSize = 10;//IT cannot be 1 or 2, otherwise strategies will not work (if there are not 3, strategy 2 causes trouble)
         [Range(1, 10), Tooltip("Episodes needed to run until passing to the next Generation\n@TIP: divide the reward given by this number")] public int episodesPerEvolution = 1;
         [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 100; private int currentEpisode = 1;
-        [Range(1, 1000), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 100f; float timeLeft;
+        [Range(1, 1000), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 25f; float timeLeft;
 
         [Space, Header("===== Strategies =====")]
         [Tooltip("@in the beggining use Strategy1.\n@if AI's performance decreases, switch to Strategy2.\n@finetune the final Brain using Strategy3.")]
@@ -1489,14 +1496,24 @@ namespace MLFramework
             //Instatiate AI
             team = new AI[teamSize];
             AIModel.GetComponent<Agent>().behavior = BehaviorType.Static;
-            for (int i = 0; i < team.Length; i++)
-            {
-                GameObject member = Instantiate(AIModel, AIModel.transform.position, AIModel.transform.rotation);
-                team[i].agent = member;
-                team[i].agent.SetActive(true);
-                team[i].script = member.GetComponent<Agent>() as Agent;
-                team[i].fitness = 0f;
-            }
+            if (interactionType == TrainingType.OneAgentPerEnvironment)
+                for (int i = 0; i < Environments.Length; i++)
+                {
+                    Agent ag = (Agent)Environments[i].transform.GetComponentInChildren(typeof(Agent), true);
+                    team[i].agent = ag.gameObject;
+                    team[i].agent.SetActive(true);
+                    team[i].script = ag;
+                    team[i].fitness = 0f;
+                }
+            else
+                for (int i = 0; i < team.Length; i++)
+                {
+                    GameObject member = Instantiate(AIModel, AIModel.transform.position, AIModel.transform.rotation);
+                    team[i].agent = member;
+                    team[i].agent.SetActive(true);
+                    team[i].script = member.GetComponent<Agent>() as Agent;
+                    team[i].fitness = 0f;
+                }
 
             NeuralNetwork.activation = team[0].script.activationType;
             NeuralNetwork.outputActivation = team[0].script.outputActivationType;
@@ -1574,9 +1591,8 @@ namespace MLFramework
         protected void ResetEpisode()
         {
             for (int i = 0; i < team.Length; i++)
-            {
-                OnEpisodeEnd(ref team[i]);
-            }
+                OnEpisodeEnd(ref team[i]);//it makes sense to be here
+
             UpdateFitnessInArray();
             SortTeam();
 
@@ -1620,14 +1636,16 @@ namespace MLFramework
                 item.script.behavior = BehaviorType.Self;
 
             currentEpisode++;
-            OnEpisodeBegin();
+            OnEpisodeBegin(ref Environments);
         }
         /// <summary>
-        /// Adds actions after episode resetting. Use-cases: flags activations, environment repositioning etc.
+        /// Adds actions after episode restting. Use-cases: flags activations, environment repositioning etc.
+        /// <para>To modify one object in all environments, the parameter array must be parsed. Then, in each environment, search for the object needed and modify it.</para>
+        /// <para>For monoenvironment, you can get reference to the objects through the Trainer script and modify their behavior here, without using the parameter.</para>
         /// </summary>
-        protected virtual void OnEpisodeBegin()
+        /// <param name="Environments">array containing each Environment gameObject</param>
+        protected virtual void OnEpisodeBegin(ref GameObject[] Environments)
         {
-            /// Is called at the end of ResetEpisode() and at the begining of SetupEnvPositions()
 
         }
         /// <summary>
@@ -1639,9 +1657,7 @@ namespace MLFramework
         /// <param name="ai"></param>
         protected virtual void OnEpisodeEnd(ref AI ai)
         {
-
             ///Is called at the beggining of ResetEpisode()
-
         }
         //----------------------------------------------ENVIRONMENTAL----------------------------------------//
         private void EnvironmentSetup()
@@ -2807,7 +2823,7 @@ namespace MLFramework
         {
             if (sizeIndex == buffer.Length)
             {
-                Debug.Log("SensorBuffer is full.");
+                Debug.Log("SensorBuffer is full. Increase the space size or remove this observation.");
                 return;
             }
             buffer[sizeIndex++] = observation1;
@@ -2816,7 +2832,7 @@ namespace MLFramework
         {
             if (sizeIndex == buffer.Length)
             {
-                Debug.Log("SensorBuffer is full.");
+                Debug.Log("SensorBuffer is full. Increase the space size or remove this observation.");
                 return;
             }
             buffer[sizeIndex++] = observation1;
@@ -2825,7 +2841,7 @@ namespace MLFramework
         {
             if (sizeIndex == buffer.Length)
             {
-                Debug.Log("SensorBuffer is full.");
+                Debug.Log("SensorBuffer is full. Increase the space size or remove this observation.");
                 return;
             }
             buffer[sizeIndex++] = observation1;
@@ -2889,6 +2905,18 @@ namespace MLFramework
             AddObservation(obsevation10.localScale);
             AddObservation(obsevation10.rotation);
         }
+        public void AddObservation(float[] observations1)
+        {
+            if (buffer.Length - sizeIndex < observations1.Length)
+            {
+                Debug.Log("SensorBuffer available space is " + (buffer.Length - sizeIndex) + ". Float array observations is too large.");
+                return;
+            }
+            foreach (var item in observations1)
+            {
+                AddObservation(item);
+            }
+        }
     }
     public struct ActionBuffer
     {
@@ -2906,7 +2934,7 @@ namespace MLFramework
         /// Get the buffer array with every action values.
         /// <para>Can be used instead of using GetAction() method.</para>
         /// </summary>
-        /// <returns>float[]</returns>
+        /// <returns>float[] copy of the buffer</returns>
         public float[] GetBuffer()
         {
             return buffer;

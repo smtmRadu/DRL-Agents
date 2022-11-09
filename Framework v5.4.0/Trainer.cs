@@ -17,24 +17,24 @@ public class Trainer : TrainerBase
     protected override void SetupTeam()
     {
         base.SetupTeam();
-        //Add different colors for your AI's
-        //Color add is automatic for agents with SpriteRenderer on the parent gameobject
+        //Additional changes to the AI's before starting the training session
     }
     protected override void EnvironmentAction()
     {
-        //Add actions for your environment, this method is called in Update - Tip: use Time.deltaTime
+        //Add actions for your environment
     }
-    protected override void OnEpisodeBegin()
+    protected override void OnEpisodeBegin(ref GameObject[] Environments)
     {
-        //Actions after Reseting Episode - Example: Activate reward flags/ Modify the environment randomly
+        //Actions after episode reset
+        //Parse the parameter to modify the "same" object in each environment
     }
     protected override void OnEpisodeEnd(ref AI ai)
     {
-        //Modify each AI before Reseting Episode - Ex: Add postActions reward
+        // Actions before episode reset
+        // Parse the parameter to modify all AI's if needed
         // ai.agent - used to access the agent gameobject
         // ai.script - used to acces Agent Script 
         // ai.fitness - used to get it's current fitness
-
-        //To add reward even if Ai's action ended, use ai.script.AddFitness(value,true) [reward will be added even if AI behaviour becomes Static]
+        // To add reward even if Ai's action ended, use ai.script.AddFitness(value,true) [reward will be added even if AI behaviour becomes Static]
     }
 }
