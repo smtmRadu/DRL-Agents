@@ -34,7 +34,7 @@ namespace MLFramework
         public static ActivationFunctionType activation = ActivationFunctionType.Tanh;
         public static ActivationFunctionType outputActivation = ActivationFunctionType.Tanh;
         public static MutationStrategy mutation = MutationStrategy.Classic;
-        public static InitializationFunctionType initialization = InitializationFunctionType.StandardNormal1;
+        public static InitializationFunctionType initialization = InitializationFunctionType.StandardDistribution;
 
         protected int[] layers;
         protected float[][] neurons;
@@ -268,22 +268,22 @@ namespace MLFramework
 
             switch (initialization)
             {
-                case InitializationFunctionType.StandardNormal1:
+                case InitializationFunctionType.StandardDistribution:
                     for (int i = 0; i < axons.Length; i++)
                     {
-                        axons[i] = Functions.InitializationFunctionStandardNormal(0.15915f, 2f, 0.3373f);
+                        axons[i] = Functions.RandomInNormalDistribution(new System.Random(), 0, 1);
                     }
                     break;
-                case InitializationFunctionType.StandardNormal2:
+                case InitializationFunctionType.Deviation1Distribution:
                     for (int i = 0; i < axons.Length; i++)
                     {
-                        axons[i] = Functions.InitializationFunctionStandardNormal(0.15915f, 0.2f, 0.3373f);
+                        axons[i] = Functions.RandomValueInCustomDeviationDistribution(0.15915f, 1.061f, 0.3373f);
                     }
                     break;
-                case InitializationFunctionType.StandardNormal3:
+                case InitializationFunctionType.Deviation2Distribution:
                     for (int i = 0; i < axons.Length; i++)
                     {
-                        axons[i] = Functions.InitializationFunctionStandardNormal(0.15915f, 2f, 0.722f);
+                        axons[i] = Functions.RandomValueInCustomDeviationDistribution(0.15915f, 2f, 0.3373f);
                     }
                     break;
                 case InitializationFunctionType.RandomValue:
@@ -295,7 +295,7 @@ namespace MLFramework
                 default:
                     for (int i = 0; i < axons.Length; i++)
                     {
-                        axons[i] = Functions.InitializationFunctionStandardNormal(0.15915f, 2f, 0.3373f);
+                        axons[i] = Functions.RandomValueInCustomDeviationDistribution(0.15915f, 2f, 0.3373f);
                     }
                     break;
 
@@ -730,7 +730,7 @@ namespace MLFramework
         [Tooltip("@activation function used for output layer\n@influences the actionBuffer values")]
         public ActivationFunctionType outputActivationType = ActivationFunctionType.Tanh;
         [Tooltip("@initializes weights and biases of a newly created network")]
-        public InitializationFunctionType initializationType = InitializationFunctionType.StandardNormal1;
+        public InitializationFunctionType initializationType = InitializationFunctionType.StandardDistribution;
 
 
         [Header("===== Heuristic Properties =====")]
@@ -2582,7 +2582,7 @@ namespace MLFramework
         {
             float chance = UnityEngine.Random.value;
             if (chance < .125f)
-                weight = Functions.InitializationFunctionStandardNormal(0.15915f, 2f, 0.3373f);
+                weight = Functions.RandomValueInCustomDeviationDistribution(0.15915f, 2f, 0.3373f);
             else if (chance < .3f)
                 ClassicMutation(ref weight);
             else if (chance < .475f)
@@ -2597,7 +2597,7 @@ namespace MLFramework
         }
 
         //Initialization 
-        static public float InitializationFunctionStandardNormal(float l, float k, float z)
+        static public float RandomValueInCustomDeviationDistribution(float l, float k, float z)
         {
             float x = UnityEngine.Random.value;
             float sign = UnityEngine.Random.value;
@@ -2608,7 +2608,7 @@ namespace MLFramework
 
 
         }
-        static float RandomInNormalDistribution(System.Random rng, float mean, float standardDeviation)
+        static public float RandomInNormalDistribution(System.Random rng, float mean, float standardDeviation)
         {
             float x1 = (float)(1 - rng.NextDouble());
             float x2 = (float)(1 - rng.NextDouble());
@@ -3109,21 +3109,18 @@ namespace MLFramework
     {
         [Tooltip("@value: [0, 1]")]
         RandomValue,
+        [Tooltip("@Box-Muller method in Standard Normal Distribution")]
+        StandardDistribution,
+        [Tooltip("@value: average 0.673\n" +
+           "@l = 0.15915f\n" +
+           "@k = 1.061f\n" +
+           "@z = 0.3373f")]
+        Deviation1Distribution,
         [Tooltip("@value: average 0.725\n" +
             "@l = 0.15915f\n" +
             "@k = 2f\n" +
             "@z = 0.3373f")]
-        StandardNormal1,
-        [Tooltip("@value: average 0.673\n" +
-            "@l = 0.15915f\n" +
-            "@k = 1.061f\n" +
-            "@z = 0.3373f")]
-        StandardNormal2,
-        [Tooltip("@value: average 1.065\n" +
-            "@l = 0.15915f\n" +
-            "@k = 2f\n" +
-            "@z = 0.722")]
-        StandardNormal3
+        Deviation2Distribution,
     }
     public enum LossFunctionType
     {
@@ -3143,3 +3140,4 @@ namespace MLFramework
         Learn,
     }
 }
+
