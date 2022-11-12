@@ -5,10 +5,14 @@ Use the latest stable version of the Framework's folder ONLY.
 
 Neural Network Class contains the code for instantiating a Neural Network, Trainer class implements the Reinforcement Learning and Agent Class the Heuristics.
 
+![ezgif com-gif-maker](https://user-images.githubusercontent.com/67599940/201483556-f6e4a5d7-a246-429b-b2cf-284d2c667bc8.gif)
+
+
 The use of this framework is done by overriding some methods where you send observations (inputs) and receive actions (outputs), creating a suitable, stable and well designed training environment or by choosing a heuristic approach (or both). Check the documentation "How to use the Framework.docx" placed inside the folder of the version used.<br />
 
 ![cars](cars.gif)
 
+Major updates:
 -Performance leaks were solved starting from version 2.0.<br />
 -NeuralNetwork is more performant starting with version 2.9<br />
 -Multienvironmental Training started in version 3.7<br />
