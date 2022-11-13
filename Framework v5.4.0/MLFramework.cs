@@ -21,6 +21,10 @@ using static UnityEditor.Progress;
 
 namespace MLFramework
 {
+    // v5.4.4
+    // SetupTeam() method erased from the virtual methods. No more overriding because is mainly useless.
+    // OnEpisodeBegin() method calls each environement separately, one GameObject is parsed at a time, similar to OnEpisodeEnd().
+
     // v5.4.3
     // +adds for sensor buffer
     // +one agent per environment update
@@ -1380,18 +1384,18 @@ namespace MLFramework
         [Tooltip("The model used updates in the first next generation\n@tip: use a copy of the brain")] public bool resetBrainModelFitness = false;
         [Tooltip("@save networks of best Ai's before moving to the next generation.\n@number of saves = cbrt(Team Size).\n@folder: /Saves/.\n@last file saved is the best AI")] public bool saveBrains = false;
 
-        [Header("===== Statistics Display =====")]
-        [Tooltip("First ObjectOfType<Camera>")] public bool cameraFollowsBestAI = true; GameObject cam; bool isOrtographic; Vector3 perspectiveOffset;
-        [Tooltip("Load a Canvas TMPro to watch the current performance of AI's")] public TMPro.TMP_Text Labels = null;
-        [Tooltip("Load a Canvas RectTransform to watch a Gizmos graph in SceneEditor")] public RectTransform Graph = null;
-        List<float> bestResults;//memorize best results for every episode
-        List<float> averageResults;//memorize avg results for every episode
-
         [Space, Header("===== Training Settings =====")]
         [Range(3, 1000)] public int teamSize = 10;//IT cannot be 1 or 2, otherwise strategies will not work (if there are not 3, strategy 2 causes trouble)
         [Range(1, 10), Tooltip("Episodes needed to run until passing to the next Generation\n@TIP: divide the reward given by this number")] public int episodesPerEvolution = 1;
         [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 100; private int currentEpisode = 1;
         [Range(1, 1000), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 25f; float timeLeft;
+
+        [Space, Header("===== Statistics Display =====")]
+        [Tooltip("First ObjectOfType<Camera>")] public bool cameraFollowsBestAI = true; GameObject cam; bool isOrtographic; Vector3 perspectiveOffset;
+        [Tooltip("Load a Canvas TMPro to watch the current performance of AI's")] public TMPro.TMP_Text Labels = null;
+        [Tooltip("Load a Canvas RectTransform to watch a Gizmos graph in SceneEditor")] public RectTransform Graph = null;
+        List<float> bestResults;//memorize best results for every episode
+        List<float> averageResults;//memorize avg results for every episode
 
         [Space, Header("===== Strategies =====")]
         [Tooltip("@in the beggining use Strategy1.\n@if AI's performance decreases, switch to Strategy2.\n@finetune the final Brain using Strategy3.")]
@@ -1493,7 +1497,7 @@ namespace MLFramework
         /// </para>
         /// <para>They are auto colored differently if they have a SpriteRenderer component.</para>
         /// </summary>
-        protected virtual void SetupTeam()
+        void SetupTeam()
         {
             //Instatiate AI
             team = new AI[teamSize];
@@ -1559,7 +1563,6 @@ namespace MLFramework
         void Train()
         {
             timeLeft -= Time.deltaTime;
-            EnvironmentAction();
 
             UpdateFitnessInArray();
 
@@ -1579,10 +1582,6 @@ namespace MLFramework
         /// <summary>
         /// Adds actions to the environment [objects] referenced to this script. Use Time.deltaTime if needed.
         /// </summary>
-        protected virtual void EnvironmentAction()
-        {
-
-        }
         bool AreAllDead()
         {
             foreach (AI item in team)
@@ -1638,25 +1637,25 @@ namespace MLFramework
                 item.script.behavior = BehaviorType.Self;
 
             currentEpisode++;
-            OnEpisodeBegin(ref Environments);
+
+            for (int i = 0; i < Environments.Length; i++)
+                OnEpisodeBegin(ref Environments[i]);
         }
         /// <summary>
-        /// Adds actions after episode restting. Use-cases: flags activations, environment repositioning etc.
-        /// <para>To modify one object in all environments, the parameter array must be parsed. Then, in each environment, search for the object needed and modify it.</para>
-        /// <para>For monoenvironment, you can get reference to the objects through the Trainer script and modify their behavior here, without using the parameter.</para>
+        /// Adds actions after episode restting. Use-case: flags activations, environment repositioning etc.
+        /// <para>This method is called for each Environment separately. In Environment transform, search for the object needed and modify it.</para>
         /// </summary>
-        /// <param name="Environments">array containing each Environment gameObject</param>
-        protected virtual void OnEpisodeBegin(ref GameObject[] Environments)
+        /// <param name="Environments">Environment gameObject</param>
+        protected virtual void OnEpisodeBegin(ref GameObject Environment)
         {
 
         }
         /// <summary>
-        /// Actions before episode resetting. Usually used for post-action rewards, when the agents become static.
-        /// <para>This method is called for each AI separately, having a referenced AI parameter.
-        /// </para>
+        /// Actions before episode resetting. Use-case: post-action rewards, when the agents become static.
+        /// <para>This method is called for each AI separately.</para>
         /// <para>AI parameter has 3 different fields: agent, script and fitness. All are described by hovering over them.</para>
         /// </summary>
-        /// <param name="ai"></param>
+        /// <param name="ai">The Agent</param>
         protected virtual void OnEpisodeEnd(ref AI ai)
         {
             ///Is called at the beggining of ResetEpisode()
@@ -1773,20 +1772,20 @@ namespace MLFramework
                     ApplyAllTransforms(ref team[i].agent, in agentsInitialTransform[i]);
         }
         ///---------POSITIONING---------//
-        public void GetAllTransforms(UnityEngine.Transform obj, ref List<PosAndRot> inList)
+        internal void GetAllTransforms(UnityEngine.Transform obj, ref List<PosAndRot> inList)
         {
             parseCounter = 1;
             inList.Add(new PosAndRot(obj.position, obj.localScale, obj.rotation));
             GetChildsTransforms(ref inList, obj);
         }
-        public void ApplyAllTransforms(ref GameObject obj, in List<PosAndRot> fromList)
+        internal void ApplyAllTransforms(ref GameObject obj, in List<PosAndRot> fromList)
         {
             parseCounter = 1;
             ApplyTransform(ref obj, fromList[0]);
             AddChildsInitialTransform(ref obj, in fromList);
         }
 
-        public void GetChildsTransforms(ref List<PosAndRot> list, UnityEngine.Transform obj)
+        internal void GetChildsTransforms(ref List<PosAndRot> list, UnityEngine.Transform obj)
         {
             foreach (UnityEngine.Transform child in obj)
             {
@@ -1795,7 +1794,7 @@ namespace MLFramework
                 GetChildsTransforms(ref list, child);
             }
         }
-        public void AddChildsInitialTransform(ref GameObject obj, in List<PosAndRot> list)
+        internal void AddChildsInitialTransform(ref GameObject obj, in List<PosAndRot> list)
         {
             ///PARSE COUNTER USED SEPARATELY <IT MUST BE INITIALIZED WITH 0></IT>
             for (int i = 0; i < obj.transform.childCount; i++)
@@ -1806,7 +1805,7 @@ namespace MLFramework
                 AddChildsInitialTransform(ref child, list);
             }
         }
-        public void ApplyTransform(ref GameObject obj, PosAndRot trnsfrm)
+        internal void ApplyTransform(ref GameObject obj, PosAndRot trnsfrm)
         {
             obj.transform.position = trnsfrm.position;
             obj.transform.localScale = trnsfrm.scale;
@@ -3140,4 +3139,3 @@ namespace MLFramework
         Learn,
     }
 }
-
