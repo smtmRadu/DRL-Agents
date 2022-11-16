@@ -24,6 +24,7 @@ namespace MLFramework
     // v5.5
     // batching split added
     // change from ProcessOneEpoch to ProcessOneBatch
+    // decreased data collection frequency
 
     // v5.4.4
     // SetupTeam() method erased from the virtual methods. No more overriding because is mainly useless.
@@ -92,7 +93,7 @@ namespace MLFramework
             string[] layersLineStr = fileLines[0].Split("n,");//one more read than neccesary
             int noLayers = layersLineStr.Length - 1;
             int[] layersLineInt = new int[noLayers];
-            Functions.ConvertStrArrToIntArr(layersLineStr, ref layersLineInt);
+            Functions.ArrayConversion.ConvertStrArrToIntArr(layersLineStr, ref layersLineInt);
             InitializeLayers(layersLineInt);
             InitializeNeuronsAndBiases(true);
             InitializeWeights(true);
@@ -106,7 +107,7 @@ namespace MLFramework
 
                 string[] lineStr = fileLines[i].Split("w,");// one more read than neccesary
                 float[] lineInt = new float[lineStr.Length - 1];
-                Functions.ConvertStrArrToFloatArr(lineStr, ref lineInt);
+                Functions.ArrayConversion.ConvertStrArrToFloatArr(lineStr, ref lineInt);
 
 
                 //This probArr must be devided depeding on the previous neuronsNumber number of neurons
@@ -142,7 +143,7 @@ namespace MLFramework
 
                 string str = lay.ToString() + ":";
                 float[] lineInt = new float[lineStr.Length - 1];
-                Functions.ConvertStrArrToFloatArr(lineStr, ref lineInt);
+                Functions.ArrayConversion.ConvertStrArrToFloatArr(lineStr, ref lineInt);
                 this.biases[lay] = lineInt;
             }
 
@@ -223,7 +224,7 @@ namespace MLFramework
 
                 }
                 if (l == layers.Length - 1 && outputActivation == ActivationFunctionType.SoftMax)
-                    Functions.ActivationFunctionSoftMax(ref neurons[layers.Length - 1]);
+                    Functions.Activation.ActivationFunctionSoftMax(ref neurons[layers.Length - 1]);
             }
 
             return neurons[neurons.Length - 1]; //Return the last neurons layer with their values (OUTPUT)
@@ -279,19 +280,19 @@ namespace MLFramework
                 case InitializationFunctionType.StandardDistribution:
                     for (int i = 0; i < axons.Length; i++)
                     {
-                        axons[i] = Functions.RandomInNormalDistribution(new System.Random(), 0, 1);
+                        axons[i] = Functions.Initialization.RandomInNormalDistribution(new System.Random(), 0, 1);
                     }
                     break;
                 case InitializationFunctionType.Deviation1Distribution:
                     for (int i = 0; i < axons.Length; i++)
                     {
-                        axons[i] = Functions.RandomValueInCustomDeviationDistribution(0.15915f, 1.061f, 0.3373f);
+                        axons[i] = Functions.Initialization.RandomValueInCustomDeviationDistribution(0.15915f, 1.061f, 0.3373f);
                     }
                     break;
                 case InitializationFunctionType.Deviation2Distribution:
                     for (int i = 0; i < axons.Length; i++)
                     {
-                        axons[i] = Functions.RandomValueInCustomDeviationDistribution(0.15915f, 2f, 0.3373f);
+                        axons[i] = Functions.Initialization.RandomValueInCustomDeviationDistribution(0.15915f, 2f, 0.3373f);
                     }
                     break;
                 case InitializationFunctionType.RandomValue:
@@ -303,7 +304,7 @@ namespace MLFramework
                 default:
                     for (int i = 0; i < axons.Length; i++)
                     {
-                        axons[i] = Functions.RandomValueInCustomDeviationDistribution(0.15915f, 2f, 0.3373f);
+                        axons[i] = Functions.Initialization.RandomValueInCustomDeviationDistribution(0.15915f, 2f, 0.3373f);
                     }
                     break;
 
@@ -328,25 +329,25 @@ namespace MLFramework
             switch (mutation)
             {
                 case MutationStrategy.Classic:
-                    Functions.ClassicMutation(ref weightOrBias);
+                    Functions.Mutation.ClassicMutation(ref weightOrBias);
                     break;
                 case MutationStrategy.LightPercentage:
-                    Functions.LightPercentageMutation(ref weightOrBias);
+                    Functions.Mutation.LightPercentageMutation(ref weightOrBias);
                     break;
                 case MutationStrategy.LightValue:
-                    Functions.LightValueMutation(ref weightOrBias);
+                    Functions.Mutation.LightValueMutation(ref weightOrBias);
                     break;
                 case MutationStrategy.StrongPercentage:
-                    Functions.StrongPercentagegMutation(ref weightOrBias);
+                    Functions.Mutation.StrongPercentagegMutation(ref weightOrBias);
                     break;
                 case MutationStrategy.StrongValue:
-                    Functions.StrongValueMutation(ref weightOrBias);
+                    Functions.Mutation.StrongValueMutation(ref weightOrBias);
                     break;
                 case MutationStrategy.Chaotic:
-                    Functions.ChaoticMutation(ref weightOrBias);
+                    Functions.Mutation.ChaoticMutation(ref weightOrBias);
                     break;
                 default:
-                    Functions.ClassicMutation(ref weightOrBias);
+                    Functions.Mutation.ClassicMutation(ref weightOrBias);
                     break;
             }
         }
@@ -382,17 +383,17 @@ namespace MLFramework
             switch (where)
             {
                 case ActivationFunctionType.Tanh:
-                    return Functions.ActivationFunctionTanh(value);
+                    return Functions.Activation.ActivationFunctionTanh(value);
                 case ActivationFunctionType.Sigmoid:
-                    return Functions.ActivationFunctionSigmoid(value);
+                    return Functions.Activation.ActivationFunctionSigmoid(value);
                 case ActivationFunctionType.Relu:
-                    return Functions.ActivationFunctionReLU(value);
+                    return Functions.Activation.ActivationFunctionReLU(value);
                 case ActivationFunctionType.LeakyRelu:
-                    return Functions.ActivationFunctionLeakyReLU(value);
+                    return Functions.Activation.ActivationFunctionLeakyReLU(value);
                 case ActivationFunctionType.BinaryStep:
-                    return Functions.ActivationFunctionBinaryStep(value);
+                    return Functions.Activation.ActivationFunctionBinaryStep(value);
                 case ActivationFunctionType.Silu:
-                    return Functions.ActivationFunctionSiLU(value);
+                    return Functions.Activation.ActivationFunctionSiLU(value);
                 default:
                     return 0f;
             }
@@ -404,17 +405,17 @@ namespace MLFramework
             switch (where)
             {
                 case ActivationFunctionType.Tanh:
-                    return Functions.DerivativeTanh(value);
+                    return Functions.Derivatives.DerivativeTanh(value);
                 case ActivationFunctionType.Sigmoid:
-                    return Functions.DerivativeSigmoid(value);
+                    return Functions.Derivatives.DerivativeSigmoid(value);
                 case ActivationFunctionType.Relu:
-                    return Functions.DerivativeReLU(value);
+                    return Functions.Derivatives.DerivativeReLU(value);
                 case ActivationFunctionType.LeakyRelu:
-                    return Functions.DerivativeLeakyReLU(value);
+                    return Functions.Derivatives.DerivativeLeakyReLU(value);
                 case ActivationFunctionType.BinaryStep:
-                    return Functions.DerivativeBinaryStep(value);
+                    return Functions.Derivatives.DerivativeBinaryStep(value);
                 case ActivationFunctionType.Silu:
-                    return Functions.DerivativeSiLU(value);
+                    return Functions.Derivatives.DerivativeSiLU(value);
                 default:
                     return 0;
             }
@@ -575,7 +576,7 @@ namespace MLFramework
                         valuesIn[n] = nodes[l][n].valueIn;
 
                     //Activate them
-                    Functions.ActivationFunctionSoftMax(ref valuesIn);
+                    Functions.Activation.ActivationFunctionSoftMax(ref valuesIn);
 
                     //Set values Out
                     for (int n = 0; n < nodes[l].Length; n++)
@@ -641,18 +642,18 @@ namespace MLFramework
 
                 if (lossfunc == LossFunctionType.Quadratic)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.QuadraticNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
-                    cost += Functions.QuadraticNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.QuadraticNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
+                    cost += Functions.Cost.QuadraticNodeCost(outputs[i], expectedOutputs[i]);
                 }
                 else if (lossfunc == LossFunctionType.Absolute)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.AbsoluteNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
-                    cost += Functions.AbsoluteNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.AbsoluteNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
+                    cost += Functions.Cost.AbsoluteNodeCost(outputs[i], expectedOutputs[i]);
                 }
                 else if (lossfunc == LossFunctionType.CrossEntropy)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.CrossEntropyNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
-                    float localCost = Functions.CrossEntropyNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.CrossEntropyNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
+                    float localCost = Functions.Cost.CrossEntropyNodeCost(outputs[i], expectedOutputs[i]);
                     cost += float.IsNaN(localCost) ? 0 : localCost;
                 }
 
@@ -666,25 +667,25 @@ namespace MLFramework
             float[] derivatedInValues = new float[outputs.Length];
             for (int i = 0; i < derivatedInValues.Length; i++)
                 derivatedInValues[i] = nodes[nodes.Length - 1][i].valueIn;
-            Functions.DerivativeSoftMax(ref derivatedInValues);
+            Functions.Derivatives.DerivativeSoftMax(ref derivatedInValues);
 
             for (int i = 0; i < outputs.Length; i++)
             {
                 if (lossfunc == LossFunctionType.Quadratic)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.QuadraticNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
-                    cost += Functions.QuadraticNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.QuadraticNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
+                    cost += Functions.Cost.QuadraticNodeCost(outputs[i], expectedOutputs[i]);
                 }
                 else if (lossfunc == LossFunctionType.CrossEntropy)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.CrossEntropyNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
-                    float localCost = Functions.CrossEntropyNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.CrossEntropyNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
+                    float localCost = Functions.Cost.CrossEntropyNodeCost(outputs[i], expectedOutputs[i]);
                     cost += float.IsNaN(localCost) ? 0 : localCost;
                 }
                 else if (lossfunc == LossFunctionType.Absolute)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.AbsoluteNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
-                    cost += Functions.AbsoluteNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.AbsoluteNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
+                    cost += Functions.Cost.AbsoluteNodeCost(outputs[i], expectedOutputs[i]);
                 }
             }
 
@@ -785,19 +786,21 @@ namespace MLFramework
         [Header("===== Heuristic Properties =====\n@Base Settings")]
         public HeuristicModule module = HeuristicModule.Append;
         [Tooltip("@path of the training data file\nname of the newly created training data file")] public string samplesPath = null;
-        [Range(0, 300), Tooltip("@data collection time.\n@data_size = sessionLength * avgFPS")] public float sessionLength = 60;
+        [Range(0, 300), Tooltip("@data collection time.\n@data_size = sessionLength * avgFPS")] public float dataCollectingTime = 60;
+        [Space(5), SerializeField, Tooltip("@read only\n@shows average error of the current epoch")] private float error;
+        [Space(5)]
         [Tooltip("@reset the environment transforms when agent action ended")] public GameObject Environment;
         [Tooltip("@watch the progression of the error\n@if is noisy, decrease the learnRate\n@if stagnates, increase the learnRate")] public RectTransform errorGraph;
 
         [Header("@Advanced Settings")]
         [Tooltip("@do not append/write samples where expected outputs are null\n@expected outputs are considered null if all action vector elements are equal to 0")] public bool killStaticActions = true;
-        [SerializeField, Tooltip("@read only\n@shows average error of the current epoch")] private float error;
         [Range(1, 1000), Tooltip("@number of parsings through the training batch.")] public uint epochs = 10;
-        [Range(0, 1), Tooltip("@modification strength per iteration\n@for stochastic set it to 1")] public float learnRate = 0.1f;
-        [Tooltip("@loss function type")] public LossFunctionType costType = LossFunctionType.Quadratic;
+        [Range(0.0001f, 1f), Tooltip("@modification strength per iteration\n@for stochastic set it to 1")] public float learnRate = 0.1f;
+        [Tooltip("@loss function type")] public LossFunctionType lossFunction = LossFunctionType.Quadratic;
         [Space(5)]
-        [Tooltip("@how the training data is processed")] public GradientDescent gradientDescent = GradientDescent.MiniBatch;
-        [Tooltip("@percentage % value\n@applied only for mini-batching"), Range(0.00f, 1.00f)] public float miniBatchesSplit = 0.20f;
+        [Tooltip("@how the training data is processed.")] public GradientDescent gradientDescent = GradientDescent.MiniBatch;
+        [Tooltip("@how the training data is splitted into mini-batches.\n@MiniBatch gradient descent only."), Range(0.01f, 1.00f)] public float dataSplit = 0.10f;
+
 
         //ONLY HEURISTIC 
         private List<Sample> samplesCollected;//used only when appending/learning
@@ -814,7 +817,11 @@ namespace MLFramework
         //Mini batch help vars only
         int miniBatchSize;
         int miniBatchesNumber;
-        int currentMiniBatchIndex;
+        int currentMiniBatchIndex;//used for data spliting in minibatches and also when training 1 batch at a time
+
+        //Sampling collection
+        int frameIndex;//frame index while collecting data
+
         protected virtual void Awake()
         {
             GetAllTransforms();
@@ -874,7 +881,7 @@ namespace MLFramework
         void HeuristicAction()
         {
             if (module == HeuristicModule.Learn)
-                ProcessOneEpoch();
+                ProcessOneBatch();
             else
                 CollectTrainingData();
         }
@@ -882,27 +889,25 @@ namespace MLFramework
         //-------------------------------------------HEURISTIC TRAINING--------------------------------------------------//
         void CollectTrainingData()
         {
-
-            if (sessionLength <= 0)
+            dataCollectingTime -= Time.deltaTime;
+            if (dataCollectingTime <= 0)
             {
                 behavior = BehaviorType.Static;
                 if (module == HeuristicModule.Append)
                 {
-                    Debug.Log("<color=#64de18>Appending <color=#e405fc>" + totalTrainingSamples + " </color>training samples...</color>");
+                    Debug.Log("<color=#64de18>Appending <color=#e405fc>" + samplesCollected.Count + " </color>training samples...</color>");
                     File.AppendAllLines(samplesPath, GetLinesFromBatchList());
                     Debug.Log("<color=#64de18>Data appended succesfully.</color>");
                 }
                 else if (module == HeuristicModule.Write)
                 {
-                    Debug.Log("<color=#64de18>Writing <color=#e405fc>" + totalTrainingSamples + " </color>training samples...</color>");
+                    Debug.Log("<color=#64de18>Writing <color=#e405fc>" + samplesCollected.Count + " </color>training samples...</color>");
                     File.WriteAllLines(samplesPath, GetLinesFromBatchList());
                     Debug.Log("<color=#186ede>Data written succesfully.</color>");
                 }
                 return;
             }
 
-
-            sessionLength -= Time.deltaTime;
             //Get inputs
             SensorBuffer inputs = new SensorBuffer(network.GetInputsNumber());
             CollectObservations(ref inputs);
@@ -911,10 +916,20 @@ namespace MLFramework
             Heuristic(ref desiredOutputs);
             OnActionReceived(desiredOutputs);
 
+            // //This part is used to save a sample less than 1 per frame -> 2/3 samples from 3 frames are deprecated
+            frameIndex++;
+            try
+            {
+                if (frameIndex % (int)(0.03f / Time.deltaTime) != 0)
+                    return;
+            }
+            catch { /*divided by 0*/}
+
+
+            //Creating sample
             Sample sample = new Sample();
             sample.inputs = inputs.GetBuffer();
             sample.expectedOutputs = desiredOutputs.GetBuffer();
-
             //Check if null inputs KILLABLE
             if (killStaticActions)
             {
@@ -958,17 +973,29 @@ namespace MLFramework
                 Debug.Log("<color=#64de18>Collecting data from file <color=grey>" + samplesPath + "</color>...</color>");
                 if (samplesPath == null || samplesPath == "" || new FileInfo(samplesPath).Length == 0)
                 {
-                    Debug.Log("<color=red>Heuristic samples file is invalid.</color>");
+                    Debug.Log("<color=red>TrainingData file is invalid.</color>");
                     behavior = BehaviorType.Static;
                     return;
                 }
 
                 string[] stringBatch = File.ReadAllLines(samplesPath);
 
-                miniBatchesNumber = (int)(1f / miniBatchesSplit);
-                miniBatchSize = stringBatch.Length / (2 * miniBatchesNumber);
+                if (gradientDescent == GradientDescent.MiniBatch)
+                {
+                    miniBatchesNumber = (int)(1f / dataSplit);
+                    miniBatchSize = stringBatch.Length / (2 * miniBatchesNumber);
+                }
+                else if (gradientDescent == GradientDescent.Batch)
+                {
+                    miniBatchesNumber = 1;
+                    miniBatchSize = stringBatch.Length / 2;
+                }
+                else if (gradientDescent == GradientDescent.Stochastic)
+                {
+                    miniBatchesNumber = stringBatch.Length / 2;
+                    miniBatchSize = 1;
+                }
                 currentMiniBatchIndex = 0;
-
 
                 for (int i = 0; i < stringBatch.Length / 2; i++)
                 {
@@ -977,14 +1004,14 @@ namespace MLFramework
                 }
                 currentMiniBatchIndex = 0;
 
-                Debug.Log("<color=#64de18>Data arrayed. <color=#e405fc>" + totalTrainingSamples + "</color> samples found. The agent started the learning process. Do not stop the simulation.</color>");
-
-
-
+                Debug.Log("<color=#64de18>Total samples: <color=#e405fc>" + totalTrainingSamples + "</color> = <color=#e405fc>"
+                          + miniBatchesNumber + "</color> batches <color=#e02810>X </color><color=#e405fc>" + miniBatchSize + "</color> samples." +
+                          " The agent started the learning process. Do not stop the simulation.</color>");
             }
             else if (module == HeuristicModule.Append || module == HeuristicModule.Write)
             {
                 samplesCollected = new List<Sample>();
+                frameIndex = 0;
                 try
                 {
                     FileInfo fi = new FileInfo(samplesPath);
@@ -1007,9 +1034,6 @@ namespace MLFramework
                 Debug.Log("<color=#64de18>Collecting data from user...</color>");
 
             }
-
-
-
         }
         void AddSampleToBatches(Sample sample)
         {
@@ -1031,23 +1055,24 @@ namespace MLFramework
             else if (gradientDescent == GradientDescent.Stochastic)
             {
                 batches.Add(new List<Sample> { sample });
+                currentMiniBatchIndex++;
             }
         }
-        void ProcessOneEpoch()
+        void ProcessOneBatch()
         {
             if (epochs > 0)
             {
-                foreach (var batch in batches)
+                if (currentMiniBatchIndex > miniBatchesNumber - 1) { currentMiniBatchIndex = 0; epochs--; }
+                //train one minibatch
+                foreach (var sample in batches[currentMiniBatchIndex])
                 {
-                    foreach (var sample in batch)
-                    {
-                        network.UpdateGradients(sample.inputs, sample.expectedOutputs, costType);
-                    }
-                    network.ApplyGradients(learnRate, batch.Count);
+                    network.UpdateGradients(sample.inputs, sample.expectedOutputs, lossFunction);
                 }
-                error = network.GetError() / totalTrainingSamples;//is an epoch error
+                network.ApplyGradients(learnRate, batches[currentMiniBatchIndex].Count);
+
+                error = network.GetError() / batches[currentMiniBatchIndex].Count;//is a mini batch error
                 callStatistic = true;
-                epochs--;
+                currentMiniBatchIndex++;
             }
             else
             {
@@ -1097,7 +1122,7 @@ namespace MLFramework
             {
                 float oldMaxError = maxErrorFound;
                 maxErrorFound = error;
-                xUnit = xSize / startingEpochs;
+                xUnit = xSize / (startingEpochs * miniBatchesNumber);
                 yUnit = ySize / maxErrorFound;
                 for (int i = 0; i < errorPoints.Count; i++)
                 {
@@ -1106,7 +1131,7 @@ namespace MLFramework
             }
             else
             {
-                xUnit = xSize / startingEpochs;
+                xUnit = xSize / (startingEpochs * miniBatchesNumber);
                 yUnit = ySize / maxErrorFound;
             }
 
@@ -1468,11 +1493,17 @@ namespace MLFramework
         [Tooltip("The model used updates in the first next generation\n@tip: use a copy of the brain")] public bool resetBrainModelFitness = false;
         [Tooltip("@save networks of best Ai's before moving to the next generation.\n@number of saves = cbrt(Team Size).\n@folder: /Saves/.\n@last file saved is the best AI")] public bool saveBrains = false;
 
-        [Space, Header("===== Training Settings =====")]
+        [Space, Header("===== Training Properties =====\n@Base Settings")]
         [Range(3, 1000)] public int teamSize = 10;//IT cannot be 1 or 2, otherwise strategies will not work (if there are not 3, strategy 2 causes trouble)
         [Range(1, 10), Tooltip("Episodes needed to run until passing to the next Generation\n@TIP: divide the reward given by this number")] public int episodesPerEvolution = 1;
         [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 100; private int currentEpisode = 1;
         [Range(1, 1000), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 25f; float timeLeft;
+
+        [Space, Header("@Advanced Settings")]
+        [Tooltip("@in the beggining use Strategy1.\n@if AI's performance decreases, switch to Strategy2.\n@finetune the final Brain using Strategy3.")]
+        public TrainingStrategy trainingStrategy = TrainingStrategy.Strategy1;
+        [Tooltip("@mutates the weights and biases following certain rules")]
+        public MutationStrategy mutationStrategy = MutationStrategy.Classic;
 
         [Space, Header("===== Statistics Display =====")]
         [Tooltip("First ObjectOfType<Camera>")] public bool cameraFollowsBestAI = true; GameObject cam; bool isOrtographic; Vector3 perspectiveOffset;
@@ -1481,11 +1512,7 @@ namespace MLFramework
         List<float> bestResults;//memorize best results for every episode
         List<float> averageResults;//memorize avg results for every episode
 
-        [Space, Header("===== Strategies =====")]
-        [Tooltip("@in the beggining use Strategy1.\n@if AI's performance decreases, switch to Strategy2.\n@finetune the final Brain using Strategy3.")]
-        public TrainingStrategy trainingStrategy = TrainingStrategy.Strategy1;
-        [Tooltip("@mutates the weights and biases following certain rules")]
-        public MutationStrategy mutationStrategy = MutationStrategy.Classic;
+
 
 
         private NeuralNetwork modelNet;
@@ -2368,39 +2395,6 @@ namespace MLFramework
                 team[j + 1] = key;
             }
         }
-        AI[] SortTeamByQuicksort(ref AI[] arr)
-        {
-            return null;
-            //STACK OVERFLOW PROBLEMS
-            /*  return null;
-              List<AI> less = new List<AI>();
-              List<AI> equal = new List<AI>();
-              List<AI> greater = new List<AI>();
-              if (arr.Length > 1)
-              {
-                  float pivot = team[0].fitness;
-                  foreach (var item in arr)
-                  {
-                      if (item.fitness < pivot)
-                          less.Add(item);
-                      else if (item.fitness == pivot)
-                          equal.Add(item);
-                      else if (item.fitness > pivot)
-                          greater.Add(item);
-                  }
-                  AI[] lessArr = less.ToArray();
-                  AI[] equalArr = equal.ToArray();
-                  AI[] greaterArr = greater.ToArray();
-
-                  AI[] newArr = new AI[lessArr.Length + equalArr.Length + greaterArr.Length];
-                  SortTeamByQuicksort(ref lessArr).CopyTo(newArr, 0);
-                  equalArr.CopyTo(newArr, lessArr.Length);
-                  SortTeamByQuicksort(ref greaterArr).CopyTo(newArr, equalArr.Length);
-                  return newArr;
-              }
-              else return arr;*/
-        }
-
         //------------------------------------------COMPLEMENTARY METHODS-----------------------------------// 
         private void ResetFitEverywhere()
         {
@@ -2460,285 +2454,286 @@ namespace MLFramework
     }
     internal readonly struct Functions
     {
-        //Activation
-        static public float ActivationFunctionBinaryStep(float value)
+        internal readonly struct Activation
         {
-            if (value < 0)
+            static public float ActivationFunctionBinaryStep(float value)
+            {
+                if (value < 0)
+                    return 0;
+                else return 1;
+            }
+            static public float ActivationFunctionSigmoid(float value)
+            {
+                //values range [0,1]
+                // Function is x = 1/(1 + e^(-x))
+                return (float)1f / (1f + Mathf.Exp(-value));
+            }
+            static public float ActivationFunctionTanh(float value)
+            {
+                return (float)System.Math.Tanh((double)value);
+                /*
+                 //Other variant is to shift the sigmoid function
+                   return (float)2f / (1f + Mathf.Exp(-2*value)) - 1;
+
+
+                 */
+            }
+            static public float ActivationFunctionReLU(float value)
+            {
+                return Mathf.Max(0, value);
+            }
+            static public float ActivationFunctionLeakyReLU(float value, float alpha = 0.2f)
+            {
+                if (value > 0)
+                    return value;
+                else return value * alpha;
+            }
+            static public float ActivationFunctionSiLU(float value)
+            {
+                return value * ActivationFunctionSigmoid(value);
+            }
+            static public void ActivationFunctionSoftMax(ref float[] values)
+            {
+                float sum = 0f;
+                for (int i = 0; i < values.Length; i++)
+                {
+                    values[i] = Mathf.Exp(values[i]);
+                    sum += values[i];
+                }
+                for (int i = 0; i < values.Length; i++)
+                {
+                    values[i] /= sum;
+                }
+            }
+        }
+        internal readonly struct Derivatives
+        {
+            static public float DerivativeTanh(float value)
+            {
+                return 1f - (float)Math.Pow(Math.Tanh(value), 2);
+            }
+            static public float DerivativeSigmoid(float value)
+            {
+                return Activation.ActivationFunctionSigmoid(value) * (1 - Activation.ActivationFunctionSigmoid(value));
+            }
+            static public float DerivativeBinaryStep(float value)
+            {
                 return 0;
-            else return 1;
-        }
-        static public float ActivationFunctionSigmoid(float value)
-        {
-            //values range [0,1]
-            // Function is x = 1/(1 + e^(-x))
-            return (float)1f / (1f + Mathf.Exp(-value));
-        }
-        static public float ActivationFunctionTanh(float value)
-        {
-            return (float)System.Math.Tanh((double)value);
-            /*
-             //Other variant is to shift the sigmoid function
-               return (float)2f / (1f + Mathf.Exp(-2*value)) - 1;
-             
-             
-             */
-        }
-        static public float ActivationFunctionReLU(float value)
-        {
-            return Mathf.Max(0, value);
-        }
-        static public float ActivationFunctionLeakyReLU(float value, float alpha = 0.2f)
-        {
-            if (value > 0)
-                return value;
-            else return value * alpha;
-        }
-        static public float ActivationFunctionSiLU(float value)
-        {
-            return value * ActivationFunctionSigmoid(value);
-        }
-        static public void ActivationFunctionSoftMax(ref float[] values)
-        {
-            float sum = 0f;
-            for (int i = 0; i < values.Length; i++)
-            {
-                values[i] = Mathf.Exp(values[i]);
-                sum += values[i];
             }
-            for (int i = 0; i < values.Length; i++)
+            static public float DerivativeReLU(float value)
             {
-                values[i] /= sum;
+                if (value < 0)
+                    return 0;
+                else return 1;
+            }
+            static public float DerivativeLeakyReLU(float value, float alpha = 0.2f)
+            {
+                if (value < 0)
+                    return alpha;
+                else return 1;
+            }
+            static public float DerivativeSiLU(float value)
+            {
+                return (1 + Mathf.Exp(-value) + value * Mathf.Exp(-value)) / Mathf.Pow((1 + Mathf.Exp(-value)), 2);
+                //return ActivationFunctionSigmoid(value) * (1 + value * (1 - ActivationFunctionSigmoid(value))); -> works the same
+            }
+            static public void DerivativeSoftMax(ref float[] values)
+            {
+                float sum = 0f;
+
+                foreach (float item in values)
+                    sum += Mathf.Exp(item);
+
+
+                for (int i = 0; i < values.Length; i++)
+                {
+                    float ePowI = Mathf.Exp(values[i]);
+                    values[i] = (ePowI * sum - ePowI * ePowI) / (sum * sum);
+                }
             }
         }
-
-        //Derivatives
-        static public float DerivativeTanh(float value)
+        internal readonly struct Cost
         {
-            return 1f - (float)Math.Pow(Math.Tanh(value), 2);
-        }
-        static public float DerivativeSigmoid(float value)
-        {
-            return ActivationFunctionSigmoid(value) * (1 - ActivationFunctionSigmoid(value));
-        }
-        static public float DerivativeBinaryStep(float value)
-        {
-            return 0;
-        }
-        static public float DerivativeReLU(float value)
-        {
-            if (value < 0)
-                return 0;
-            else return 1;
-        }
-        static public float DerivativeLeakyReLU(float value, float alpha = 0.2f)
-        {
-            if (value < 0)
-                return alpha;
-            else return 1;
-        }
-        static public float DerivativeSiLU(float value)
-        {
-            return (1 + Mathf.Exp(-value) + value * Mathf.Exp(-value)) / Mathf.Pow((1 + Mathf.Exp(-value)), 2);
-            //return ActivationFunctionSigmoid(value) * (1 + value * (1 - ActivationFunctionSigmoid(value))); -> works the same
-        }
-        static public void DerivativeSoftMax(ref float[] values)
-        {
-            float sum = 0f;
-
-            foreach (float item in values)
-                sum += Mathf.Exp(item);
-
-
-            for (int i = 0; i < values.Length; i++)
+            static public float QuadraticNodeCost(float outputActivation, float expectedOutput)
             {
-                float ePowI = Mathf.Exp(values[i]);
-                values[i] = (ePowI * sum - ePowI * ePowI) / (sum * sum);
+                float error = outputActivation - expectedOutput;
+                return error * error;
             }
-        }
-
-
-        //Cost Functions
-        static public float QuadraticNodeCost(float outputActivation, float expectedOutput)
-        {
-            float error = outputActivation - expectedOutput;
-            return error * error;
-        }
-        static public float QuadraticNodeCostDerivative(float outputActivation, float expectedOutput)
-        {
-            return 2 * (outputActivation - expectedOutput);
-        }
-        static public float AbsoluteNodeCost(float outputActivation, float expectedOutput)
-        {
-            return Mathf.Abs(outputActivation - expectedOutput);
-        }
-        static public float AbsoluteNodeCostDerivative(float outputActivation, float expectedOutput)
-        {
-            if ((outputActivation - expectedOutput) > 0)
-                return 1;
-            else return -1;
-        }
-        static public float CrossEntropyNodeCost(float outputActivation, float expectedOutput)
-        {
-            double v = (expectedOutput == 1) ? -System.Math.Log(outputActivation) : -System.Math.Log(1 - outputActivation);
-            return (float)v;
-        }
-        static public float CrossEntropyNodeCostDerivative(float outputActivation, float expectedOutput)
-        {
-            if (outputActivation == 0 || expectedOutput == 1)
-                return 0;
-            return (-outputActivation + expectedOutput) / (outputActivation * (outputActivation - 1));
-        }
-
-        // Mutations
-        static public void ClassicMutation(ref float weight)
-        {
-            float randNum = UnityEngine.Random.Range(0f, 10f);
-
-            if (randNum <= 2f)//20% chance of flip sign of the weightOrBias
+            static public float QuadraticNodeCostDerivative(float outputActivation, float expectedOutput)
             {
-                weight *= -1f;
+                return 2 * (outputActivation - expectedOutput);
             }
-            else if (randNum <= 4f)//20% chance of fully randomize weightOrBias
+            static public float AbsoluteNodeCost(float outputActivation, float expectedOutput)
             {
-                weight = UnityEngine.Random.Range(-.5f, .5f);
+                return Mathf.Abs(outputActivation - expectedOutput);
             }
-            else if (randNum <= 6f)//20% chance of increase to 100 - 200 %
+            static public float AbsoluteNodeCostDerivative(float outputActivation, float expectedOutput)
             {
-                float factor = UnityEngine.Random.value + 1f;
+                if ((outputActivation - expectedOutput) > 0)
+                    return 1;
+                else return -1;
+            }
+            static public float CrossEntropyNodeCost(float outputActivation, float expectedOutput)
+            {
+                double v = (expectedOutput == 1) ? -System.Math.Log(outputActivation) : -System.Math.Log(1 - outputActivation);
+                return (float)v;
+            }
+            static public float CrossEntropyNodeCostDerivative(float outputActivation, float expectedOutput)
+            {
+                if (outputActivation == 0 || expectedOutput == 1)
+                    return 0;
+                return (-outputActivation + expectedOutput) / (outputActivation * (outputActivation - 1));
+            }
+
+        }
+        internal readonly struct Mutation
+        {
+            static public void ClassicMutation(ref float weight)
+            {
+                float randNum = UnityEngine.Random.Range(0f, 10f);
+
+                if (randNum <= 2f)//20% chance of flip sign of the weightOrBias
+                {
+                    weight *= -1f;
+                }
+                else if (randNum <= 4f)//20% chance of fully randomize weightOrBias
+                {
+                    weight = UnityEngine.Random.Range(-.5f, .5f);
+                }
+                else if (randNum <= 6f)//20% chance of increase to 100 - 200 %
+                {
+                    float factor = UnityEngine.Random.value + 1f;
+                    weight *= factor;
+                }
+                else if (randNum <= 8f)//20% chance of decrease in range 0 - 100 %
+                {
+                    float factor = UnityEngine.Random.value;
+                    weight *= factor;
+                }
+                else
+                {
+                }//20% chance of NO MUTATION
+
+            }
+            static public void LightPercentageMutation(ref float weight)
+            {
+                //increase/decrease all to a max of 50%
+                float sign = UnityEngine.Random.value;
+                float factor;
+                if (sign > .5f)
+                {
+                    factor = UnityEngine.Random.Range(1f, 1.5f);
+                }
+                else
+                {
+                    factor = UnityEngine.Random.Range(.5f, 1f);
+                }
                 weight *= factor;
             }
-            else if (randNum <= 8f)//20% chance of decrease in range 0 - 100 %
+            static public void StrongPercentagegMutation(ref float weight)
             {
-                float factor = UnityEngine.Random.value;
+                //increase/decrease all to a max of 100%
+
+                float sign = UnityEngine.Random.value;
+                float factor;
+                if (sign > .5f)//increase
+                {
+                    factor = UnityEngine.Random.value + 1f;
+                }
+                else//decrease
+                {
+                    factor = UnityEngine.Random.value;
+
+                }
                 weight *= factor;
-            }
-            else
-            {
-            }//20% chance of NO MUTATION
-
-        }
-        static public void LightPercentageMutation(ref float weight)
-        {
-            //increase/decrease all to a max of 50%
-            float sign = UnityEngine.Random.value;
-            float factor;
-            if (sign > .5f)
-            {
-                factor = UnityEngine.Random.Range(1f, 1.5f);
-            }
-            else
-            {
-                factor = UnityEngine.Random.Range(.5f, 1f);
-            }
-            weight *= factor;
-        }
-        static public void StrongPercentagegMutation(ref float weight)
-        {
-            //increase/decrease all to a max of 100%
-
-            float sign = UnityEngine.Random.value;
-            float factor;
-            if (sign > .5f)//increase
-            {
-                factor = UnityEngine.Random.value + 1f;
-            }
-            else//decrease
-            {
-                factor = UnityEngine.Random.value;
 
             }
-            weight *= factor;
-
-        }
-        static public void LightValueMutation(ref float weight)
-        {
-            // + 0 -> .5f or  - 0 -> .5f
-            float randNum = UnityEngine.Random.Range(-.5f, .5f);
-            weight += randNum;
-        }
-        static public void StrongValueMutation(ref float weight)
-        {
-            float randNum = UnityEngine.Random.Range(-1f, 1f);
-            weight += randNum;
-        }
-        static public void ChaoticMutation(ref float weight)
-        {
-            float chance = UnityEngine.Random.value;
-            if (chance < .125f)
-                weight = Functions.RandomValueInCustomDeviationDistribution(0.15915f, 2f, 0.3373f);
-            else if (chance < .3f)
-                ClassicMutation(ref weight);
-            else if (chance < .475f)
-                LightPercentageMutation(ref weight);
-            else if (chance < .65f)
-                StrongPercentagegMutation(ref weight);
-            else if (chance < .825f)
-                LightValueMutation(ref weight);
-            else
-                StrongValueMutation(ref weight);
-
-        }
-
-        //Initialization 
-        static public float RandomValueInCustomDeviationDistribution(float l, float k, float z)
-        {
-            float x = UnityEngine.Random.value;
-            float sign = UnityEngine.Random.value;
-            if (sign > .5f)
-                return (float)Mathf.Pow(-Mathf.Log(2f * l * Mathf.PI * Mathf.Pow(x, 2f)) * z, 1f / k);
-            else
-                return (float)-Mathf.Pow(-Mathf.Log(2f * l * Mathf.PI * Mathf.Pow(x, 2f)) * z, 1f / k);
-
-
-        }
-        static public float RandomInNormalDistribution(System.Random rng, float mean, float standardDeviation)
-        {
-            float x1 = (float)(1 - rng.NextDouble());
-            float x2 = (float)(1 - rng.NextDouble());
-
-            float y1 = Mathf.Sqrt(-2.0f * Mathf.Log(x1)) * Mathf.Cos(2.0f * (float)Math.PI * x2);
-            return y1 * standardDeviation + mean;
-        }
-
-        //Complementary
-        static public void ConvertStrArrToIntArr(string[] str, ref int[] arr)
-        {
-            for (int i = 0; i < arr.Length; i++)
+            static public void LightValueMutation(ref float weight)
             {
-                try
+                // + 0 -> .5f or  - 0 -> .5f
+                float randNum = UnityEngine.Random.Range(-.5f, .5f);
+                weight += randNum;
+            }
+            static public void StrongValueMutation(ref float weight)
+            {
+                float randNum = UnityEngine.Random.Range(-1f, 1f);
+                weight += randNum;
+            }
+            static public void ChaoticMutation(ref float weight)
+            {
+                float chance = UnityEngine.Random.value;
+                if (chance < .125f)
+                    weight = Functions.Initialization.RandomValueInCustomDeviationDistribution(0.15915f, 2f, 0.3373f);
+                else if (chance < .3f)
+                    ClassicMutation(ref weight);
+                else if (chance < .475f)
+                    LightPercentageMutation(ref weight);
+                else if (chance < .65f)
+                    StrongPercentagegMutation(ref weight);
+                else if (chance < .825f)
+                    LightValueMutation(ref weight);
+                else
+                    StrongValueMutation(ref weight);
+
+            }
+        }
+        internal readonly struct Initialization
+        {
+            static public float RandomValueInCustomDeviationDistribution(float l, float k, float z)
+            {
+                float x = UnityEngine.Random.value;
+                float sign = UnityEngine.Random.value;
+                if (sign > .5f)
+                    return (float)Mathf.Pow(-Mathf.Log(2f * l * Mathf.PI * Mathf.Pow(x, 2f)) * z, 1f / k);
+                else
+                    return (float)-Mathf.Pow(-Mathf.Log(2f * l * Mathf.PI * Mathf.Pow(x, 2f)) * z, 1f / k);
+
+
+            }
+            static public float RandomInNormalDistribution(System.Random rng, float mean, float standardDeviation)
+            {
+                float x1 = (float)(1 - rng.NextDouble());
+                float x2 = (float)(1 - rng.NextDouble());
+
+                float y1 = Mathf.Sqrt(-2.0f * Mathf.Log(x1)) * Mathf.Cos(2.0f * (float)Math.PI * x2);
+                return y1 * standardDeviation + mean;
+            }
+
+        }
+        internal readonly struct ArrayConversion
+        {
+            static public void ConvertStrArrToIntArr(string[] str, ref int[] arr)
+            {
+                for (int i = 0; i < arr.Length; i++)
                 {
-                    arr[i] = int.Parse(str[i]);
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogError(str[i] + " : " + e);
-                }
+                    try
+                    {
+                        arr[i] = int.Parse(str[i]);
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogError(str[i] + " : " + e);
+                    }
 
+                }
             }
-        }
-        static public void ConvertStrArrToFloatArr(string[] str, ref float[] arr)
-        {
-            for (int i = 0; i < arr.Length; i++)
+            static public void ConvertStrArrToFloatArr(string[] str, ref float[] arr)
             {
-                try
+                for (int i = 0; i < arr.Length; i++)
                 {
-                    arr[i] = float.Parse(str[i]);
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogError(str[i] + " : " + e);
-                }
+                    try
+                    {
+                        arr[i] = float.Parse(str[i]);
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogError(str[i] + " : " + e);
+                    }
 
+                }
             }
         }
-        static public void Swap<T>(ref T[] objArray, int index1, int index2)
-        {
-            if (objArray == null && objArray.Length <= index1 && objArray.Length <= index2) return;
 
-            var temp = objArray[index1];
-            objArray[index1] = objArray[index2];
-            objArray[index2] = temp;
-        }
     }
     internal readonly struct ColorConvertor
     {
@@ -2812,38 +2807,6 @@ namespace MLFramework
             str = new string(charArray);
         }
     }
-    class JSONSaver
-    {   //Not used until multi-dimensional arrays can be serialized as json
-        string path;
-        object obj;
-
-        public JSONSaver(object @object, string path)
-        {
-            this.path = path;
-            path += ".json";
-            this.obj = @object;
-        }
-        public void Save()
-        {
-            string json = JsonUtility.ToJson(obj);
-            System.IO.File.WriteAllText(path, json);
-        }
-        public void Load()
-        {
-            string json = System.IO.File.ReadAllText(path);
-            object obj = JsonUtility.FromJson<object>(json);
-        }
-        public object GetObject()
-        {
-            return obj;
-        }
-        public void ChangePath(string newPath)
-        {
-            this.path = newPath;
-        }
-
-
-    }
 
     public struct AI
     {
@@ -2888,6 +2851,10 @@ namespace MLFramework
                 buffer[i] = 0;
             sizeIndex = 0;
         }
+        /// <summary>
+        /// Returns the array that contains all the input values .
+        /// </summary>
+        /// <returns>float[] with all values</returns>
         public float[] GetBuffer()
         {
             return buffer;
@@ -2901,7 +2868,7 @@ namespace MLFramework
 
 
         /// <summary>
-        /// Appends a float observation to the SensorBuffer.
+        /// Appends a float value to the SensorBuffer.
         /// </summary>
         /// <param name="observation1">Value of the observation</param>
         public void AddObservation(float observation1)
@@ -2913,6 +2880,10 @@ namespace MLFramework
             }
             buffer[sizeIndex++] = observation1;
         }
+        /// <summary>
+        ///  Appends an int value to the SensorBuffer.
+        /// </summary>
+        /// <param name="observation1">Value of the observation</param>
         public void AddObservation(int observation1)
         {
             if (sizeIndex == buffer.Length)
@@ -2922,6 +2893,10 @@ namespace MLFramework
             }
             buffer[sizeIndex++] = observation1;
         }
+        /// <summary>
+        /// Appends an unsigned int value to the SensorBuffer.
+        /// </summary>
+        /// <param name="observation1">Value of the observation</param>
         public void AddObservation(uint observation1)
         {
             if (sizeIndex == buffer.Length)
@@ -2931,6 +2906,10 @@ namespace MLFramework
             }
             buffer[sizeIndex++] = observation1;
         }
+        /// <summary>
+        /// Appends a Vector2 value to the SensorBuffer.
+        /// </summary>
+        /// <param name="observation2">Value of the observation</param>
         public void AddObservation(Vector2 observation2)
         {
             if (buffer.Length - sizeIndex < 2)
@@ -2941,6 +2920,10 @@ namespace MLFramework
             buffer[sizeIndex++] = observation2.x;
             buffer[sizeIndex++] = observation2.y;
         }
+        /// <summary>
+        /// Appends a Vector3 value to the SensorBuffer.
+        /// </summary>
+        /// <param name="observation3">Value of the observation</param>
         public void AddObservation(Vector3 observation3)
         {
 
@@ -2953,6 +2936,10 @@ namespace MLFramework
             buffer[sizeIndex++] = observation3.y;
             buffer[sizeIndex++] = observation3.z;
         }
+        /// <summary>
+        /// Appends a Vector4 value to the SensorBuffer.
+        /// </summary>
+        /// <param name="observation4">Value of the observation</param>
         public void AddObservation(Vector4 observation4)
         {
 
@@ -2967,6 +2954,10 @@ namespace MLFramework
             buffer[sizeIndex++] = observation4.z;
             buffer[sizeIndex++] = observation4.w;
         }
+        /// <summary>
+        /// Appends a Quaternion value to the SensorBuffer.
+        /// </summary>
+        /// <param name="observation4">Value of the observation</param>
         public void AddObservation(Quaternion observation4)
         {
             if (buffer.Length - sizeIndex < 4)
@@ -2979,6 +2970,10 @@ namespace MLFramework
             buffer[sizeIndex++] = observation4.z;
             buffer[sizeIndex++] = observation4.w;
         }
+        /// <summary>
+        /// Appends a Transform value to the SensorBuffer.
+        /// </summary>
+        /// <param name="observation10">Value of the observation</param>
         public void AddObservation(UnityEngine.Transform obsevation10)
         {
             if (buffer.Length - sizeIndex < 10)
@@ -2990,14 +2985,18 @@ namespace MLFramework
             AddObservation(obsevation10.localScale);
             AddObservation(obsevation10.rotation);
         }
-        public void AddObservation(float[] observations1)
+        /// <summary>
+        /// Appends an array of float values to the SensorBuffer.
+        /// </summary>
+        /// <param name="observations">Values of the observations</param>
+        public void AddObservation(float[] observations)
         {
-            if (buffer.Length - sizeIndex < observations1.Length)
+            if (buffer.Length - sizeIndex < observations.Length)
             {
                 Debug.Log("SensorBuffer available space is " + (buffer.Length - sizeIndex) + ". Float array observations is too large.");
                 return;
             }
-            foreach (var item in observations1)
+            foreach (var item in observations)
             {
                 AddObservation(item);
             }
@@ -3216,10 +3215,11 @@ namespace MLFramework
     }
     public enum LossFunctionType
     {
-        [Tooltip("(output - expectedOutput)^2")]
+        [Tooltip("@(output - expectedOutput)^2")]
         Quadratic,
-        [Tooltip("abs(output - expectedOutput)")]
+        [Tooltip("@abs(output - expectedOutput)")]
         Absolute,
+        [Tooltip("@only for SoftMax outputActivation")]
         CrossEntropy,
     }
     public enum HeuristicModule
@@ -3232,4 +3232,3 @@ namespace MLFramework
         Learn,
     }
 }
-
