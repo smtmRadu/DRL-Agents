@@ -21,10 +21,16 @@ using static UnityEditor.Progress;
 
 namespace MLFramework
 {
-    // v5.5
+    // v5.5.1
+    // minor debug messages changes
+    // neural network visualization to the heuristic training
+    // colored weights per nn visualization
+    // cross entropy slightly fixed
+
+    // v5.5.0
     // batching split added
-    // change from ProcessOneEpoch to ProcessOneBatch
-    // decreased data collection frequency
+    // changed from ProcessOneEpoch to ProcessOneBatch
+    // decreased data collection frequency to 1/3 our of 3 frames
 
     // v5.4.4
     // SetupTeam() method erased from the virtual methods. No more overriding because is mainly useless.
@@ -642,24 +648,24 @@ namespace MLFramework
 
                 if (lossfunc == LossFunctionType.Quadratic)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.QuadraticNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
-                    cost += Functions.Cost.QuadraticNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.QuadraticDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
+                    cost += Functions.Cost.Quadratic(outputs[i], expectedOutputs[i]);
                 }
                 else if (lossfunc == LossFunctionType.Absolute)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.AbsoluteNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
-                    cost += Functions.Cost.AbsoluteNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.AbsoluteDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
+                    cost += Functions.Cost.Absolute(outputs[i], expectedOutputs[i]);
                 }
                 else if (lossfunc == LossFunctionType.CrossEntropy)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.CrossEntropyNodeCostDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
-                    float localCost = Functions.Cost.CrossEntropyNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.CrossEntropyDerivative(outputs[i], expectedOutputs[i]) * ActivationDerivative(nodes[nodes.Length - 1][i].valueIn, true);
+                    float localCost = Functions.Cost.CrossEntropy(outputs[i], expectedOutputs[i]);
                     cost += float.IsNaN(localCost) ? 0 : localCost;
                 }
 
             }
 
-            return cost;
+            return cost / outputs.Length;//divided by the number of neurons
         }//LOSS FUNCTION
         float CalculateOutputNodesCostForSoftMax(float[] outputs, float[] expectedOutputs, LossFunctionType lossfunc)
         {
@@ -673,19 +679,19 @@ namespace MLFramework
             {
                 if (lossfunc == LossFunctionType.Quadratic)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.QuadraticNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
-                    cost += Functions.Cost.QuadraticNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.QuadraticDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
+                    cost += Functions.Cost.Quadratic(outputs[i], expectedOutputs[i]);
                 }
                 else if (lossfunc == LossFunctionType.CrossEntropy)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.CrossEntropyNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
-                    float localCost = Functions.Cost.CrossEntropyNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.CrossEntropyDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
+                    float localCost = Functions.Cost.CrossEntropy(outputs[i], expectedOutputs[i]);
                     cost += float.IsNaN(localCost) ? 0 : localCost;
                 }
                 else if (lossfunc == LossFunctionType.Absolute)
                 {
-                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.AbsoluteNodeCostDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
-                    cost += Functions.Cost.AbsoluteNodeCost(outputs[i], expectedOutputs[i]);
+                    nodes[nodes.Length - 1][i].costValue = Functions.Cost.AbsoluteDerivative(outputs[i], expectedOutputs[i]) * derivatedInValues[i];
+                    cost += Functions.Cost.Absolute(outputs[i], expectedOutputs[i]);
                 }
             }
 
@@ -786,7 +792,8 @@ namespace MLFramework
         [Header("===== Heuristic Properties =====\n@Base Settings")]
         public HeuristicModule module = HeuristicModule.Append;
         [Tooltip("@path of the training data file\nname of the newly created training data file")] public string samplesPath = null;
-        [Range(0, 300), Tooltip("@data collection time.\n@data_size = sessionLength * avgFPS")] public float dataCollectingTime = 60;
+        [Range(1, 1000), Tooltip("@number of parsings through the training batch.")] public uint epochs = 100;
+        [Range(0, 300), Tooltip("@data collection time in seconds.\n@33.33 samples per second")] public float sessionLength = 60;
         [Space(5), SerializeField, Tooltip("@read only\n@shows average error of the current epoch")] private float error;
         [Space(5)]
         [Tooltip("@reset the environment transforms when agent action ended")] public GameObject Environment;
@@ -794,12 +801,12 @@ namespace MLFramework
 
         [Header("@Advanced Settings")]
         [Tooltip("@do not append/write samples where expected outputs are null\n@expected outputs are considered null if all action vector elements are equal to 0")] public bool killStaticActions = true;
-        [Range(1, 1000), Tooltip("@number of parsings through the training batch.")] public uint epochs = 10;
-        [Range(0.0001f, 1f), Tooltip("@modification strength per iteration\n@for stochastic set it to 1")] public float learnRate = 0.1f;
+        [Range(0.000000001f, 1f), Tooltip("@modification strength per iteration\n@for stochastic set it to 1")] public float learnRate = 0.1f;
         [Tooltip("@loss function type")] public LossFunctionType lossFunction = LossFunctionType.Quadratic;
         [Space(5)]
         [Tooltip("@how the training data is processed.")] public GradientDescent gradientDescent = GradientDescent.MiniBatch;
         [Tooltip("@how the training data is splitted into mini-batches.\n@MiniBatch gradient descent only."), Range(0.01f, 1.00f)] public float dataSplit = 0.10f;
+        [Space(5), Range(1, 100), Tooltip("@how many training samples are created per second")] public int samplesFrequency = 33;
 
 
         //ONLY HEURISTIC 
@@ -889,8 +896,8 @@ namespace MLFramework
         //-------------------------------------------HEURISTIC TRAINING--------------------------------------------------//
         void CollectTrainingData()
         {
-            dataCollectingTime -= Time.deltaTime;
-            if (dataCollectingTime <= 0)
+            sessionLength -= Time.deltaTime;
+            if (sessionLength <= 0)
             {
                 behavior = BehaviorType.Static;
                 if (module == HeuristicModule.Append)
@@ -922,6 +929,16 @@ namespace MLFramework
             {
                 if (frameIndex % (int)(0.03f / Time.deltaTime) != 0)
                     return;
+                //at 600 fps, deltaTime = 0.00166 -> (0.03/deltaTime) = 18 frames
+                //a sample is collected every 18 frames -> 33.33 samples per second
+                //at 100 fps, deltaTime = 0.01 -> (0.03/0.01) = 3 frames
+                // a sample is collected every 3 frames -> 33.33 samples per second
+
+                //If i want to change this, also change the debug.log from heuristic preparation where ~minutes are shown
+
+                // 0.02 -> 50 samples per second
+                // 0.04 -> 25 samples per second
+                //In average 33.33 samples are collected per second
             }
             catch { /*divided by 0*/}
 
@@ -970,7 +987,7 @@ namespace MLFramework
             {
                 batches = new List<List<Sample>>();
 
-                Debug.Log("<color=#64de18>Collecting data from file <color=grey>" + samplesPath + "</color>...</color>");
+                //Debug.Log("<color=#64de18>Collecting data from file <color=grey>" + samplesPath + "</color>...</color>");
                 if (samplesPath == null || samplesPath == "" || new FileInfo(samplesPath).Length == 0)
                 {
                     Debug.Log("<color=red>TrainingData file is invalid.</color>");
@@ -1005,8 +1022,9 @@ namespace MLFramework
                 currentMiniBatchIndex = 0;
 
                 Debug.Log("<color=#64de18>Total samples: <color=#e405fc>" + totalTrainingSamples + "</color> = <color=#e405fc>"
-                          + miniBatchesNumber + "</color> batches <color=#e02810>X </color><color=#e405fc>" + miniBatchSize + "</color> samples." +
-                          " The agent started the learning process. Do not stop the simulation.</color>");
+                          + miniBatchesNumber + "</color> batches <color=#e02810>X </color><color=#e405fc>" + miniBatchSize + "</color> samples " +
+                          "(~<color=#e02810>" + totalTrainingSamples / 2000 + "</color> minutes of training data)" +
+                          ". Agent is learning. Stop the simulation by sliding epochs to 0.</color>");
             }
             else if (module == HeuristicModule.Append || module == HeuristicModule.Write)
             {
@@ -1017,7 +1035,7 @@ namespace MLFramework
                     FileInfo fi = new FileInfo(samplesPath);
                     if (fi.Exists && fi.Length > 0)
                     {
-                        Debug.Log("<color=#64de18>Collecting data from user...</color>");
+                        Debug.Log("<color=#64de18>Collecting gameplay from user...</color>");
                         return;
                     }
                 }
@@ -1093,64 +1111,149 @@ namespace MLFramework
 
         private void OnDrawGizmos()
         {
+            if (errorGraph == null)
+                return;
             //adds a point with the error everytime is called
             if (!callStatistic)
                 return;
-            Gizmos.matrix = errorGraph.localToWorldMatrix;
             float xSize = errorGraph.rect.width;
             float ySize = errorGraph.rect.height / 2;
-
-            Vector2 zero = new Vector2(-xSize / 2, 0);
-            float zeroX = -xSize / 2;
-
-            //Draw AXIS
-            Gizmos.color = Color.white;
-            Gizmos.DrawLine(zero, new Vector2(zeroX, ySize));//up
-            Gizmos.DrawLine(zero, new Vector2(-zeroX, 0f));//right
-            Gizmos.DrawSphere(zero, 5f);
-            //Draw Arrows
-            float arrowLength = 10f;
-            //Y
-            Gizmos.DrawLine(new Vector2(zeroX, ySize), new Vector2(zeroX - arrowLength, ySize - arrowLength));
-            Gizmos.DrawLine(new Vector2(zeroX, ySize), new Vector2(zeroX + arrowLength, ySize - arrowLength));
-            //X
-            Gizmos.DrawLine(new Vector2(-zeroX, 0), new Vector2(-zeroX - arrowLength, -arrowLength));
-            Gizmos.DrawLine(new Vector2(-zeroX, 0), new Vector2(-zeroX - arrowLength, +arrowLength));
-            float xUnit;
-            float yUnit;
-            if (error > maxErrorFound)
+            try
             {
-                float oldMaxError = maxErrorFound;
-                maxErrorFound = error;
-                xUnit = xSize / (startingEpochs * miniBatchesNumber);
-                yUnit = ySize / maxErrorFound;
-                for (int i = 0; i < errorPoints.Count; i++)
+                Gizmos.matrix = errorGraph.localToWorldMatrix;
+
+                Vector2 zero = new Vector2(-xSize / 2, 0);
+                float zeroX = -xSize / 2;
+
+                //Draw AXIS
+                Gizmos.color = Color.white;
+                Gizmos.DrawLine(zero, new Vector2(zeroX, ySize));//up
+                Gizmos.DrawLine(zero, new Vector2(-zeroX, 0f));//right
+                Gizmos.DrawSphere(zero, 5f);
+                //Draw Arrows
+                float arrowLength = 10f;
+                //Y
+                Gizmos.DrawLine(new Vector2(zeroX, ySize), new Vector2(zeroX - arrowLength, ySize - arrowLength));
+                Gizmos.DrawLine(new Vector2(zeroX, ySize), new Vector2(zeroX + arrowLength, ySize - arrowLength));
+                //X
+                Gizmos.DrawLine(new Vector2(-zeroX, 0), new Vector2(-zeroX - arrowLength, -arrowLength));
+                Gizmos.DrawLine(new Vector2(-zeroX, 0), new Vector2(-zeroX - arrowLength, +arrowLength));
+                float xUnit;
+                float yUnit;
+                if (error > maxErrorFound)
                 {
-                    errorPoints[i] = new Vector2(zeroX + xUnit * i, errorPoints[i].y * (oldMaxError / maxErrorFound));
+                    float oldMaxError = maxErrorFound;
+                    maxErrorFound = error;
+                    xUnit = xSize / (startingEpochs * miniBatchesNumber);
+                    yUnit = ySize / maxErrorFound;
+                    for (int i = 0; i < errorPoints.Count; i++)
+                    {
+                        errorPoints[i] = new Vector2(zeroX + xUnit * i, errorPoints[i].y * (oldMaxError / maxErrorFound));
+                    }
                 }
+                else
+                {
+                    xUnit = xSize / (startingEpochs * miniBatchesNumber);
+                    yUnit = ySize / maxErrorFound;
+                }
+
+
+                Vector2 newErrorPoint = new Vector2(zeroX + xUnit * errorPoints.Count, yUnit * error);
+                errorPoints.Add(newErrorPoint);
+
+                //Draw Dots
+                Gizmos.color = Color.blue;
+                foreach (Vector2 point in errorPoints)
+                    Gizmos.DrawSphere(point, .5f);
+
+                //Draw Lines
+                Gizmos.color = Color.green;
+                //Gizmos.DrawLine(zero, errorPoints[0]);
+                for (int i = 0; i < errorPoints.Count - 1; i++)
+                    Gizmos.DrawLine(errorPoints[i], errorPoints[i + 1]);
             }
-            else
+            catch { }
+            //draw network
+            try
             {
-                xUnit = xSize / (startingEpochs * miniBatchesNumber);
-                yUnit = ySize / maxErrorFound;
+                float SCALE = .05f;
+                Color emptyNeuron = Color.yellow;
+                Color biasColor = Color.green;
+                NeuralNetwork nety = network;
+
+
+
+                int[] layers = nety.GetLayers();
+                float[][][] weights = nety.GetWeights();
+                float[][] biases = nety.GetBiases();
+
+                Vector2[][] neuronsPosition = new Vector2[layers.Length][];//starts from up-left
+                Vector2[] biasesPosition = new Vector2[layers.Length - 1];//one for each layer
+
+                float maxNeuronsInLayers = layers.Max();
+                float scale = 1 / (layers.Length * maxNeuronsInLayers) * SCALE;
+                float xOffset = -xSize / 2;
+                float yOffset = -ySize / 2;
+
+                float layerDistanceUnit = xSize / (layers.Length - 1);
+                float neuronDistanceUnit = ySize / (maxNeuronsInLayers) / 2;
+                neuronDistanceUnit -= neuronDistanceUnit * 0.15f;//substract 10% to make it a bit smaller - also not substract 1  form maxNeuronsInLayers beacause is one more bias
+
+                //FIND POSITIONS
+                for (int layerNum = 0; layerNum < layers.Length; layerNum++)//take each layer individually
+                {
+                    //float layerYstartPose = (maxNeuronsInLayers - layers[layerNum]) / 2 * neuronDistanceUnit;
+                    float layerYStartPose = -(maxNeuronsInLayers - layers[layerNum]) / 2 * neuronDistanceUnit - 50f;//substract 30f to not interact with the graph
+                    neuronsPosition[layerNum] = new Vector2[layers[layerNum]];
+                    for (int neuronNum = 0; neuronNum < layers[layerNum]; neuronNum++)
+                        neuronsPosition[layerNum][neuronNum] = new Vector2(layerNum * layerDistanceUnit + xOffset, layerYStartPose - neuronNum * neuronDistanceUnit);
+                    if (layerNum < layers.Length - 1)
+                        biasesPosition[layerNum] = new Vector2(layerNum * layerDistanceUnit + xOffset, layerYStartPose - layers[layerNum] * neuronDistanceUnit);
+                }
+
+                //Draw biases weights with their normal values
+                for (int i = 1; i < neuronsPosition.Length; i++)
+                {
+                    for (int j = 0; j < neuronsPosition[i].Length; j++)
+                    {
+                        float weightValue = biases[i][j];
+                        if (weightValue > 0)
+                            Gizmos.color = new Color(0, 0, weightValue);
+                        else Gizmos.color = new Color(-weightValue, 0, 0);
+                        Gizmos.DrawLine(biasesPosition[i - 1], neuronsPosition[i][j]);
+                    }
+                }
+
+                //Draw empty weights with their normal values 
+                for (int i = 1; i < neuronsPosition.Length; i++)//start from the second layer** keep in mind
+                    for (int j = 0; j < neuronsPosition[i].Length; j++)
+                        for (int backNeuron = 0; backNeuron < neuronsPosition[i - 1].Length; backNeuron++)
+                        {
+                            float weightValue = weights[i - 1][j][backNeuron];
+                            if (weightValue > 0)
+                                Gizmos.color = new Color(0, 0, weightValue);
+                            else
+                                Gizmos.color = new Color(-weightValue, 0, 0);
+                            Gizmos.DrawLine(neuronsPosition[i][j], neuronsPosition[i - 1][backNeuron]);
+
+                        }
+
+                //Draw Neurons
+                Gizmos.color = emptyNeuron;
+                for (int i = 0; i < neuronsPosition.Length; i++)
+                    for (int j = 0; j < neuronsPosition[i].Length; j++)
+                        Gizmos.DrawSphere(neuronsPosition[i][j], scale * 4000f);
+
+                //Draw Biases
+                Gizmos.color = biasColor;
+                for (int i = 0; i < biasesPosition.Length; i++)
+                {
+                    Gizmos.DrawSphere(biasesPosition[i], scale * 4000f);
+                }
+
+
             }
-
-
-            Vector2 newErrorPoint = new Vector2(zeroX + xUnit * errorPoints.Count, yUnit * error);
-            errorPoints.Add(newErrorPoint);
-
-            //Draw Dots
-            Gizmos.color = Color.blue;
-            foreach (Vector2 point in errorPoints)
-                Gizmos.DrawSphere(point, .5f);
-
-            //Draw Lines
-            Gizmos.color = Color.green;
-            //Gizmos.DrawLine(zero, errorPoints[0]);
-            for (int i = 0; i < errorPoints.Count - 1; i++)
-                Gizmos.DrawLine(errorPoints[i], errorPoints[i + 1]);
-
-
+            catch { }
             callStatistic = false;
         }
         private void HeuristicEnvironmentSetup()
@@ -2107,8 +2210,7 @@ namespace MLFramework
             try
             {
                 float SCALE = .05f;
-                Color emptyNeuron = Color.black;
-                Color fullNeuron = Color.yellow;
+                Color emptyNeuron = Color.yellow;
                 Color biasColor = Color.green;
                 NeuralNetwork nety = team[team.Length - 1].script.network;
                 try { emptyNeuron = team[team.Length - 1].agent.GetComponent<SpriteRenderer>().color; } catch { }
@@ -2151,8 +2253,8 @@ namespace MLFramework
                     {
                         float weightValue = biases[i][j];
                         if (weightValue > 0)
-                            Gizmos.color = Color.blue;
-                        else Gizmos.color = Color.red;
+                            Gizmos.color = new Color(0, 0, weightValue);
+                        else Gizmos.color = new Color(-weightValue, 0, 0);
                         Gizmos.DrawLine(biasesPosition[i - 1], neuronsPosition[i][j]);
                     }
                 }
@@ -2164,9 +2266,9 @@ namespace MLFramework
                         {
                             float weightValue = weights[i - 1][j][backNeuron];
                             if (weightValue > 0)
-                                Gizmos.color = Color.blue;
+                                Gizmos.color = new Color(0, 0, weightValue);
                             else
-                                Gizmos.color = Color.red;
+                                Gizmos.color = new Color(-weightValue, 0, 0);
                             Gizmos.DrawLine(neuronsPosition[i][j], neuronsPosition[i - 1][backNeuron]);
 
                         }
@@ -2554,37 +2656,36 @@ namespace MLFramework
         }
         internal readonly struct Cost
         {
-            static public float QuadraticNodeCost(float outputActivation, float expectedOutput)
+            static public float Quadratic(float outputActivation, float expectedOutput)
             {
                 float error = outputActivation - expectedOutput;
                 return error * error;
             }
-            static public float QuadraticNodeCostDerivative(float outputActivation, float expectedOutput)
+            static public float QuadraticDerivative(float outputActivation, float expectedOutput)
             {
                 return 2 * (outputActivation - expectedOutput);
             }
-            static public float AbsoluteNodeCost(float outputActivation, float expectedOutput)
+            static public float Absolute(float outputActivation, float expectedOutput)
             {
                 return Mathf.Abs(outputActivation - expectedOutput);
             }
-            static public float AbsoluteNodeCostDerivative(float outputActivation, float expectedOutput)
+            static public float AbsoluteDerivative(float outputActivation, float expectedOutput)
             {
                 if ((outputActivation - expectedOutput) > 0)
                     return 1;
                 else return -1;
             }
-            static public float CrossEntropyNodeCost(float outputActivation, float expectedOutput)
+            static public float CrossEntropy(float outputActivation, float expectedOutput)
             {
                 double v = (expectedOutput == 1) ? -System.Math.Log(outputActivation) : -System.Math.Log(1 - outputActivation);
-                return (float)v;
+                return double.IsNaN(v) ? 0 : (float)v;
             }
-            static public float CrossEntropyNodeCostDerivative(float outputActivation, float expectedOutput)
+            static public float CrossEntropyDerivative(float outputActivation, float expectedOutput)
             {
-                if (outputActivation == 0 || expectedOutput == 1)
+                if (outputActivation == 0 || outputActivation == 1)
                     return 0;
                 return (-outputActivation + expectedOutput) / (outputActivation * (outputActivation - 1));
             }
-
         }
         internal readonly struct Mutation
         {
@@ -3219,7 +3320,7 @@ namespace MLFramework
         Quadratic,
         [Tooltip("@abs(output - expectedOutput)")]
         Absolute,
-        [Tooltip("@only for SoftMax outputActivation")]
+        [Tooltip("@only for SoftMax outputActivation\nonly when ActionBuffer has only values of 0 with one value of 1")]
         CrossEntropy,
     }
     public enum HeuristicModule
