@@ -21,6 +21,9 @@ using static UnityEditor.Progress;
 
 namespace MLFramework
 {
+    // v5.5.2
+    // Heuristic module changed to learn and collect (writing was removed)
+
     // v5.5.1
     // minor debug messages changes
     // neural network visualization to the heuristic training
@@ -790,23 +793,23 @@ namespace MLFramework
 
 
         [Header("===== Heuristic Properties =====\n@Base Settings")]
-        public HeuristicModule module = HeuristicModule.Append;
+        public HeuristicModule module = HeuristicModule.Collect;
         [Tooltip("@path of the training data file\nname of the newly created training data file")] public string samplesPath = null;
         [Range(1, 1000), Tooltip("@number of parsings through the training batch.")] public uint epochs = 100;
         [Range(0, 300), Tooltip("@data collection time in seconds.\n@33.33 samples per second")] public float sessionLength = 60;
-        [Space(5), SerializeField, Tooltip("@read only\n@shows average error of the current epoch")] private float error;
+        [Space(5), SerializeField, Tooltip("@read only\n@average error of a batch")] private float error;
         [Space(5)]
         [Tooltip("@reset the environment transforms when agent action ended")] public GameObject Environment;
         [Tooltip("@watch the progression of the error\n@if is noisy, decrease the learnRate\n@if stagnates, increase the learnRate")] public RectTransform errorGraph;
 
         [Header("@Advanced Settings")]
         [Tooltip("@do not append/write samples where expected outputs are null\n@expected outputs are considered null if all action vector elements are equal to 0")] public bool killStaticActions = true;
-        [Range(0.000000001f, 1f), Tooltip("@modification strength per iteration\n@for stochastic set it to 1")] public float learnRate = 0.1f;
+        [Range(0.000001f, 1f), Tooltip("@modification strength per iteration\n@for stochastic set it to 1")] public float learnRate = 0.1f;
         [Tooltip("@loss function type")] public LossFunctionType lossFunction = LossFunctionType.Quadratic;
         [Space(5)]
-        [Tooltip("@how the training data is processed.")] public GradientDescent gradientDescent = GradientDescent.MiniBatch;
-        [Tooltip("@how the training data is splitted into mini-batches.\n@MiniBatch gradient descent only."), Range(0.01f, 1.00f)] public float dataSplit = 0.10f;
-        [Space(5), Range(1, 100), Tooltip("@how many training samples are created per second")] public int samplesFrequency = 33;
+        [Tooltip("@how the training data is processed.")] public GradientDescent batching = GradientDescent.MiniBatch;
+        [Tooltip("@how the training data is splitted into mini-batches.\n@Mini-Batching only."), Range(0.01f, 1.00f)] public float dataSplit = 0.10f;
+
 
 
         //ONLY HEURISTIC 
@@ -900,18 +903,11 @@ namespace MLFramework
             if (sessionLength <= 0)
             {
                 behavior = BehaviorType.Static;
-                if (module == HeuristicModule.Append)
-                {
-                    Debug.Log("<color=#64de18>Appending <color=#e405fc>" + samplesCollected.Count + " </color>training samples...</color>");
-                    File.AppendAllLines(samplesPath, GetLinesFromBatchList());
-                    Debug.Log("<color=#64de18>Data appended succesfully.</color>");
-                }
-                else if (module == HeuristicModule.Write)
-                {
-                    Debug.Log("<color=#64de18>Writing <color=#e405fc>" + samplesCollected.Count + " </color>training samples...</color>");
-                    File.WriteAllLines(samplesPath, GetLinesFromBatchList());
-                    Debug.Log("<color=#186ede>Data written succesfully.</color>");
-                }
+
+                Debug.Log("<color=#64de18>Appending <color=#e405fc>" + samplesCollected.Count + " </color>training samples...</color>");
+                File.AppendAllLines(samplesPath, GetLinesFromBatchList());
+                Debug.Log("<color=#64de18>Data collected succesfully.</color>");
+
                 return;
             }
 
@@ -937,8 +933,9 @@ namespace MLFramework
                 //If i want to change this, also change the debug.log from heuristic preparation where ~minutes are shown
 
                 // 0.02 -> 50 samples per second
+                // 0.03 -> 33.33 samples per second
                 // 0.04 -> 25 samples per second
-                //In average 33.33 samples are collected per second
+
             }
             catch { /*divided by 0*/}
 
@@ -958,6 +955,8 @@ namespace MLFramework
                     samplesCollected.Add(sample);
             }
             else samplesCollected.Add(sample);
+
+
         }
         void HeuristicPreparation()
         {
@@ -997,17 +996,17 @@ namespace MLFramework
 
                 string[] stringBatch = File.ReadAllLines(samplesPath);
 
-                if (gradientDescent == GradientDescent.MiniBatch)
+                if (batching == GradientDescent.MiniBatch)
                 {
                     miniBatchesNumber = (int)(1f / dataSplit);
                     miniBatchSize = stringBatch.Length / (2 * miniBatchesNumber);
                 }
-                else if (gradientDescent == GradientDescent.Batch)
+                else if (batching == GradientDescent.FullBatch)
                 {
                     miniBatchesNumber = 1;
                     miniBatchSize = stringBatch.Length / 2;
                 }
-                else if (gradientDescent == GradientDescent.Stochastic)
+                else if (batching == GradientDescent.Stochastic)
                 {
                     miniBatchesNumber = stringBatch.Length / 2;
                     miniBatchSize = 1;
@@ -1026,7 +1025,7 @@ namespace MLFramework
                           "(~<color=#e02810>" + totalTrainingSamples / 2000 + "</color> minutes of training data)" +
                           ". Agent is learning. Stop the simulation by sliding epochs to 0.</color>");
             }
-            else if (module == HeuristicModule.Append || module == HeuristicModule.Write)
+            else if (module == HeuristicModule.Collect)
             {
                 samplesCollected = new List<Sample>();
                 frameIndex = 0;
@@ -1057,11 +1056,11 @@ namespace MLFramework
         {
             if (batches.Count == 0)
                 batches.Add(new List<Sample>() { sample });
-            else if (gradientDescent == GradientDescent.Batch)
+            else if (batching == GradientDescent.FullBatch)
             {
                 batches[0].Add(sample);
             }
-            else if (gradientDescent == GradientDescent.MiniBatch)
+            else if (batching == GradientDescent.MiniBatch)
             {
                 if (batches[currentMiniBatchIndex].Count > miniBatchSize)
                 {
@@ -1070,7 +1069,7 @@ namespace MLFramework
                 }
                 batches[currentMiniBatchIndex].Add(sample);
             }
-            else if (gradientDescent == GradientDescent.Stochastic)
+            else if (batching == GradientDescent.Stochastic)
             {
                 batches.Add(new List<Sample> { sample });
                 currentMiniBatchIndex++;
@@ -3208,10 +3207,10 @@ namespace MLFramework
     public enum GradientDescent
     {
         [Tooltip("@one iteration\n@gradients are averaged for an epoch\n@weights are updated after the epoch/iteration")]
-        Batch,
+        FullBatch,
         [Tooltip("@many iterations\n@gradients are averaged for an iteration\n@weights are updated after each iteration")]
         MiniBatch,
-        [Tooltip("@weights are updated after each sample")]
+        [Tooltip("@weights are updated after each sample\n@DEPRECATED")]
         Stochastic
     }
     public enum BehaviorType
@@ -3321,14 +3320,12 @@ namespace MLFramework
         [Tooltip("@abs(output - expectedOutput)")]
         Absolute,
         [Tooltip("@only for SoftMax outputActivation\nonly when ActionBuffer has only values of 0 with one value of 1")]
-        CrossEntropy,
+        CrossEntropy
     }
     public enum HeuristicModule
     {
-        [Tooltip("@append data to the file below\n@creates a file if doesn't exist")]
-        Append,
-        [Tooltip("@overwrite data to the file below\n@creates a file if doesn't exist")]
-        Write,
+        [Tooltip("@append data to the file below\n@creates a file if doesn't exist using the name from Samples Path")]
+        Collect,
         [Tooltip("@use data from the file below")]
         Learn,
     }
