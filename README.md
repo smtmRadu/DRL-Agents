@@ -1,6 +1,6 @@
 # Create your own AI agents in Unity
-Open-source add-on project that can be used to train your AIs in Unity Engine. In pending in Unity Assets Store.
-Use the latest stable version of the Framework's folder ONLY.
+Open-source project that can be used to train your AIs in Unity Engine.
+Use the latest stable version of the Framework's folder ONLY (current v5.7).
 ![nnPNG](https://user-images.githubusercontent.com/67599940/187903725-1f0fa9e6-9b85-49fd-819b-4c453c0d2265.png)
 
 Neural Network Class contains the code for instantiating a Neural Network, Trainer class implements the Reinforcement Learning and Agent Class the Heuristics.
