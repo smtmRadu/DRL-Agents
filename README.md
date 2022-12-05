@@ -19,5 +19,5 @@ Major updates:
 -Heuristic Training released in version 4.78<br />
 -Heuristic Training improvement in v5.0<br />
 -Heuristic Training manageable training samples v5.3<br />
-
+-Multithreaded data processing, Gradient Momentum and L2 Regularization added from v5.6<br />
 ![ezgif com-gif-maker (2)](https://user-images.githubusercontent.com/67599940/198324173-212796c6-a9e8-4917-8525-19d882b281da.gif)
