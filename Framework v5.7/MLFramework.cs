@@ -11,6 +11,19 @@ using TMPro;
 using System;
 using UnityEditor.ShortcutManagement;
 using Unity.VisualScripting;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.IO;
+using UnityEngine.UI;
+using System.IO;
+using System.Text;
+using System.Linq;
+using UnityEditor;
+using TMPro;
+using System;
+using UnityEditor.ShortcutManagement;
+using Unity.VisualScripting;
 using System.ComponentModel;
 using UnityEditor.TerrainTools;
 using UnityEngine.UIElements;
@@ -22,6 +35,16 @@ using System.Threading;
 
 namespace MLFramework
 {
+    //patch notes
+    // v5.7.2
+    // slight modification to the tooltips/var names
+    // minor bug fixes
+
+    // v5.7.1 -> simplifcations update
+    // single threaded mode removed
+    // Batching mode simplified to the slider
+    // Stochastic mode removed
+
     // v5.7 beta
     // momentum added
     // l2 regularization added
@@ -317,7 +340,7 @@ namespace MLFramework
                 case InitializationFunctionType.RandomValue:
                     for (int i = 0; i < axons.Length; i++)
                     {
-                        axons[i] = UnityEngine.Random.value;
+                        axons[i] = Functions.Initialization.RandomValue();
                     }
                     break;
                 default:
@@ -806,19 +829,6 @@ namespace MLFramework
                         biasesGradients[biasLayerIndex][i] += 1 * localNodes[weightLayerIndex + 1][i].costValue;
                 }
                 return;
-                lock (weightsGradients) lock (biasesGradients)
-                    {
-
-                        for (int i = 0; i < outNeurons; i++)
-                        {
-                            for (int j = 0; j < inNeurons; j++)
-                            {
-                                weightsGradients[weightLayerIndex][i][j] += localNodes[weightLayerIndex][j].valueOut * localNodes[weightLayerIndex + 1][i].costValue;
-                            }
-                            biasesGradients[biasLayerIndex][i] += 1 * localNodes[weightLayerIndex + 1][i].costValue;
-                            //is weightLayerIndex+1 because the biasesGradients arr is not the same as for weights
-                        }
-                    }
             }
         }
 
@@ -854,7 +864,7 @@ namespace MLFramework
     {
         [Header("===== Agent Properties =====")]
         public BehaviorType behavior = BehaviorType.Static;
-        [Tooltip("@path of a brain model\n@name of the newly created brain model")] public string path = null;
+        [Tooltip("@path of a brain model\n@name of the newly created brain model")] public string brainPath = null;
         [Tooltip("@if has brain: saves current brain data\n@else: creates a brain using Network Properties\n@folder: StreamingAssets/Neural_Networks. \n@default naming format or uses Path")] public bool SaveBrain = false;
         public NeuralNetwork network = null;
         List<PosAndRot> initialPosition = new List<PosAndRot>(); static int parseCounter = 0;
@@ -878,21 +888,18 @@ namespace MLFramework
         [Tooltip("@path of the training data file\nname of the newly created training data file")] public string samplesPath = null;
         [Range(1, 1000), Tooltip("@number of parsings through the training batch.")] public uint epochs = 100;
         [Range(0, 300), Tooltip("@data collection time in seconds.\n@33.33 samples per second")] public float sessionLength = 60;
-        [Space(5), SerializeField, Tooltip("@read only\n@average error of a batch")] private float error;
         [Space(5)]
         [Tooltip("@reset the environment transforms when agent action ended")] public GameObject Environment;
         [Tooltip("@watch the progression of the error\n@if is noisy, decrease the learnRate\n@if stagnates, increase the learnRate")] public RectTransform errorGraph;
+        [Space(5), SerializeField, Tooltip("@read only\n@average error of a batch")] private float error;
 
         [Header("@Advanced Settings")]
         [Tooltip("@do not append/write samples where expected outputs are null\n@expected outputs are considered null if all action vector elements are equal to 0")] public bool killStaticActions = true;
-        [Range(0.0001f, 1f), Tooltip("@modification strength per iteration\n@for stochastic set it to 1")] public float learnRate = 0.1f;
-        [Range(0, 1f)] public float momentum = 0.9f;
-        [Range(0, 0.1f)] public float regularization = 0.001f;
+        [Range(0.0001f, 1f), Tooltip("@modification strength per iteration")] public float learnRate = 0.1f;
+        [Tooltip("@improves gradient descent time"), Range(0, 0.9f)] public float momentum = 0.9f;
+        [Tooltip("@impact to weight decay"), Range(0, 0.1f)] public float regularization = 0.001f;
         [Tooltip("@loss function type")] public LossFunctionType lossFunction = LossFunctionType.Quadratic;
-        [Space(5)]
-        [Tooltip("@how training data is processed.")] public GradientDescent batching = GradientDescent.MiniBatch;
-        [Tooltip("@how training data is splitted into mini-batches.\n@Mini-Batching only."), Range(0.01f, 1.00f)] public float dataSplit = 0.10f;
-        [Space(5), Tooltip("@multithreaded processing is faster")] public ThreadingType threading = ThreadingType.MultiThreaded;
+        [Tooltip("@how whole training data is splitted into mini-batches.\n@if = 1 -> Full Batch\n@else -> Mini Batch"), Range(0.01f, 1.00f)] public float batchSplit = 0.10f;
 
 
         //ONLY HEURISTIC 
@@ -948,12 +955,12 @@ namespace MLFramework
         {
             if (network == null)
             {
-                if (path == null || path == "" || new FileInfo(path).Length == 0)
+                if (brainPath == null || brainPath == "" || new FileInfo(brainPath).Length == 0)
                 {
                     Debug.LogError("<color=red>Cannot Self Control because the Brain Path uploaded is invalid</color>");
                     return;
                 }
-                this.network = new NeuralNetwork(path);
+                this.network = new NeuralNetwork(brainPath);
 
                 NeuralNetwork.activation = activationType;
                 NeuralNetwork.outputActivation = outputActivationType;
@@ -1048,12 +1055,12 @@ namespace MLFramework
 
             if (network == null)
             {
-                if (path == null || path == "" || new FileInfo(path).Length == 0)
+                if (brainPath == null || brainPath == "" || new FileInfo(brainPath).Length == 0)
                 {
                     Debug.LogError("<color=red>Brain Path is invalid</color>");
                     return;
                 }
-                this.network = new NeuralNetwork(path);
+                this.network = new NeuralNetwork(brainPath);
 
                 NeuralNetwork.activation = activationType;
                 NeuralNetwork.outputActivation = outputActivationType;
@@ -1079,21 +1086,9 @@ namespace MLFramework
 
                 string[] stringBatch = File.ReadAllLines(samplesPath);
 
-                if (batching == GradientDescent.MiniBatch)
-                {
-                    miniBatchesNumber = (int)(1f / dataSplit);
-                    miniBatchSize = stringBatch.Length / (2 * miniBatchesNumber);
-                }
-                else if (batching == GradientDescent.FullBatch)
-                {
-                    miniBatchesNumber = 1;
-                    miniBatchSize = stringBatch.Length / 2;
-                }
-                else if (batching == GradientDescent.Stochastic)
-                {
-                    miniBatchesNumber = stringBatch.Length / 2;
-                    miniBatchSize = 1;
-                }
+                miniBatchesNumber = (int)(1f / batchSplit);
+                miniBatchSize = stringBatch.Length / (2 * miniBatchesNumber);
+
                 currentMiniBatchIndex = 0;
 
                 for (int i = 0; i < stringBatch.Length / 2; i++)
@@ -1104,7 +1099,7 @@ namespace MLFramework
                 currentMiniBatchIndex = 0;
 
                 Debug.Log("<color=#64de18>Total samples: <color=#e405fc>" + totalTrainingSamples + "</color> = <color=#e405fc>"
-                          + miniBatchesNumber + "</color> batches <color=#e02810>X </color><color=#e405fc>" + miniBatchSize + "</color> samples " +
+                          + miniBatchesNumber + "</color> mini-batches <color=#e02810>X </color><color=#e405fc>" + miniBatchSize + "</color> samples " +
                           "(~<color=#e02810>" + totalTrainingSamples / 2000 + "</color> minutes of training data)" +
                           ". Agent is learning. Force Stop the simulation by sliding epochs to 0.</color>");
             }
@@ -1138,52 +1133,35 @@ namespace MLFramework
         void AddSampleToBatches(Sample sample)
         {
             if (batches.Count == 0)
+            {
                 batches.Add(new List<Sample>() { sample });
-            else if (batching == GradientDescent.FullBatch)
-            {
-                batches[0].Add(sample);
+                return;
             }
-            else if (batching == GradientDescent.MiniBatch)
+            if (batches[currentMiniBatchIndex].Count > miniBatchSize)
             {
-                if (batches[currentMiniBatchIndex].Count > miniBatchSize)
-                {
-                    batches.Add(new List<Sample>());
-                    currentMiniBatchIndex++;
-                }
-                batches[currentMiniBatchIndex].Add(sample);
-            }
-            else if (batching == GradientDescent.Stochastic)
-            {
-                batches.Add(new List<Sample> { sample });
+                batches.Add(new List<Sample>());
                 currentMiniBatchIndex++;
             }
+            batches[currentMiniBatchIndex].Add(sample);
+
         }
         void ProcessOneBatch()
         {
             if (epochs > 0)
             {
-                if (currentMiniBatchIndex > miniBatchesNumber - 1) { currentMiniBatchIndex = 0; epochs--; }
+                if (currentMiniBatchIndex > miniBatchesNumber - 1)
+                { currentMiniBatchIndex = 0; epochs--; }
 
 
                 network.InitMainGradientsArrays();
 
-                if (threading == ThreadingType.SingleThreaded)
+                //Update gradients multithreaded
+                System.Threading.Tasks.Parallel.ForEach(batches[currentMiniBatchIndex], (sample) =>
                 {
-                    foreach (var sample in batches[currentMiniBatchIndex])
-                        network.UpdateGradients(sample.inputs, sample.expectedOutputs, lossFunction);
+                    network.UpdateGradients(sample.inputs, sample.expectedOutputs, lossFunction);
+                });
 
-                }
-                else
-                {
-                    System.Threading.Tasks.Parallel.ForEach(batches[currentMiniBatchIndex], (sample) =>
-                    {
-                        network.UpdateGradients(sample.inputs, sample.expectedOutputs, lossFunction);
-                    });
-                }
-
-
-
-                //Update network
+                //Apply gradients
                 network.ApplyGradients(learnRate, batches[currentMiniBatchIndex].Count, momentum, regularization);
 
                 error = network.GetError() / batches[currentMiniBatchIndex].Count;//is a mini batch error
@@ -1194,7 +1172,7 @@ namespace MLFramework
             else
             {
                 Debug.Log("<color=#4db8ff>Heuristic training has ended succesfully.</color><color=grey> Watch your agent current performance.</color>");
-                NeuralNetwork.WriteBrain(network, path);
+                NeuralNetwork.WriteBrain(network, brainPath);
 
                 NeuralNetwork.activation = activationType;
                 NeuralNetwork.outputActivation = outputActivationType;
@@ -1653,7 +1631,12 @@ namespace MLFramework
                 NeuralNetwork.WriteBrain(network, GetPathWithName());
             else
             {
-                //CreateBrain and Write it
+                //Set hyperparameters
+                NeuralNetwork.activation = activationType;
+                NeuralNetwork.outputActivation = outputActivationType;
+                NeuralNetwork.initialization = initializationType;
+
+                //reateBrain and Write it
                 List<int> lay = new List<int>();
                 lay.Add(sensorSize);
 
@@ -1665,7 +1648,7 @@ namespace MLFramework
 
                 lay.Add(actionSize);
                 this.network = new NeuralNetwork(lay.ToArray());
-                NeuralNetwork.WriteBrain(network, GetPathWithName(path == null || path == " " || path == "" ? null : path));
+                NeuralNetwork.WriteBrain(network, GetPathWithName(brainPath == null || brainPath == " " || brainPath == "" ? null : brainPath));
             }
         }
         private void ConvertStrArrToFloatArr(string[] str, ref float[] arr)
@@ -1687,7 +1670,7 @@ namespace MLFramework
     public class TrainerBase : UnityEngine.MonoBehaviour
     {
         [Header("===== Models =====")]
-        [Tooltip("Agent model gameObject used as the ai")] public GameObject AIModel;
+        [Tooltip("Agent model gameObject used as the ai")] public GameObject agentModel;
         [Tooltip("Brain model used to start the training with")] public string brainModelPath;
         [Tooltip("@resets the dynamic environmental object's positions")] public TrainingType interactionType = TrainingType.NotSpecified;
 
@@ -1696,10 +1679,10 @@ namespace MLFramework
         [Tooltip("@save networks of best Ai's before moving to the next generation.\n@number of saves = cbrt(Team Size).\n@folder: /Saves/.\n@last file saved is the best AI")] public bool saveBrains = false;
 
         [Space, Header("===== Training Properties =====\n@Base Settings")]
-        [Range(3, 1000)] public int teamSize = 10;//IT cannot be 1 or 2, otherwise strategies will not work (if there are not 3, strategy 2 causes trouble)
+        [Range(3, 500), Tooltip("@number of clones used\n@more clones means faster reinforcement but slow performance")] public int teamSize = 10;//IT cannot be 1 or 2, otherwise strategies will not work (if there are not 3, strategy 2 causes trouble)
         [Range(1, 10), Tooltip("Episodes needed to run until passing to the next Generation\n@TIP: divide the reward given by this number")] public int episodesPerGeneration = 1;
         [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 100; private int currentEpisode = 1;
-        [Range(1, 1000), Tooltip("Maximum time allowed per Episode")] public float maxTimePerEpisode = 25f; float timeLeft;
+        [Range(1, 60), Tooltip("Maximum time allowed per Episode\n@don't confuse with 'per Generation'")] public float episodeLength = 25f; float timeLeft;
 
         [Space, Header("@Advanced Settings")]
         [Tooltip("@in the beggining use Strategy1.\n@if AI's performance decreases, switch to Strategy2.\n@finetune the final Brain using Strategy3.")]
@@ -1732,7 +1715,7 @@ namespace MLFramework
         protected virtual void Awake()
         {
             CreateDir();
-            timeLeft = maxTimePerEpisode;
+            timeLeft = episodeLength;
             bestResults = new List<float>();
             averageResults = new List<float>();
 
@@ -1742,7 +1725,7 @@ namespace MLFramework
             if (cam.GetComponent<Camera>().orthographic == true)
                 isOrtographic = true;
             else
-            { isOrtographic = false; perspectiveOffset = cam.transform.position - AIModel.transform.position; }
+            { isOrtographic = false; perspectiveOffset = cam.transform.position - agentModel.transform.position; }
         }
         protected virtual void Start()
         {
@@ -1779,12 +1762,12 @@ namespace MLFramework
         }
         bool TrainingPreparation()
         {
-            if (AIModel == null)
+            if (agentModel == null)
             {
                 Debug.LogError("The training cannot start! Reason: <color=#f27602>No AI Model uploaded</color>");
                 return false;
             }
-            if (AIModel.GetComponent<Agent>() == null)
+            if (agentModel.GetComponent<Agent>() == null)
             {
                 Debug.LogError("The training cannot start! Reason:  <color=#f27602>AI Model is not a Agent</color>");
                 return false;
@@ -1814,7 +1797,7 @@ namespace MLFramework
         {
             //Instatiate AI
             team = new AI[teamSize];
-            AIModel.GetComponent<Agent>().behavior = BehaviorType.Static;
+            agentModel.GetComponent<Agent>().behavior = BehaviorType.Static;
             if (interactionType == TrainingType.OneAgentPerEnvironment)
                 for (int i = 0; i < Environments.Length; i++)
                 {
@@ -1827,7 +1810,7 @@ namespace MLFramework
             else
                 for (int i = 0; i < team.Length; i++)
                 {
-                    GameObject member = Instantiate(AIModel, AIModel.transform.position, AIModel.transform.rotation);
+                    GameObject member = Instantiate(agentModel, agentModel.transform.position, agentModel.transform.rotation);
                     team[i].agent = member;
                     team[i].agent.SetActive(true);
                     team[i].script = member.GetComponent<Agent>() as Agent;
@@ -1868,7 +1851,7 @@ namespace MLFramework
             }
 
             //Turn Off the model
-            AIModel.SetActive(false);
+            agentModel.SetActive(false);
             UpdateDisplay();
         }
 
@@ -1910,7 +1893,7 @@ namespace MLFramework
             UpdateFitnessInArray();
             SortTeam();
 
-            timeLeft = maxTimePerEpisode;
+            timeLeft = episodeLength;
             //Next Gen
             if (currentEpisode % episodesPerGeneration == 0)
             {
@@ -2015,7 +1998,7 @@ namespace MLFramework
                     { Start = child; break; }
                 }
                 if (Start == null)//If the monoenvironment doesn't have a start, take as start the AIModel
-                    GetAllTransforms(AIModel.transform, ref agentsInitialTransform[0]);
+                    GetAllTransforms(agentModel.transform, ref agentsInitialTransform[0]);
                 else
                 {
                     GetAllTransforms(Start, ref agentsInitialTransform[0]);
@@ -2171,7 +2154,7 @@ namespace MLFramework
             statData.Append((currentEpisode - 1) / episodesPerGeneration);
             statData.Append("\n");
             {//Colorize
-                Color tlcolor = Color.Lerp(Color.red, Color.green, timeLeft / maxTimePerEpisode);
+                Color tlcolor = Color.Lerp(Color.red, Color.green, timeLeft / episodeLength);
                 Color32 tlcolor32 = new Color32();
                 ColorConvertor.ConvertColorToColor32(tlcolor, ref tlcolor32);
                 statColor = ColorConvertor.GetRichTextColorFromColor32(tlcolor32);
@@ -2879,6 +2862,17 @@ namespace MLFramework
         }
         internal readonly struct Initialization
         {
+            /// <summary>
+            /// Return a random value [-1,1] != 0
+            /// </summary>
+            /// <returns></returns>
+            static public float RandomValue()
+            {
+                if (UnityEngine.Random.value > 0.5f)
+                    return UnityEngine.Random.value;
+                else
+                    return -UnityEngine.Random.value;
+            }
             static public float RandomValueInCustomDeviationDistribution(float l, float k, float z)
             {
                 float x = UnityEngine.Random.value;
@@ -3293,26 +3287,18 @@ namespace MLFramework
 
     public enum TrainingType
     {
-        [Tooltip("@static environment\n@single environment\n@multiple agents")]
+        [Tooltip("@static environment\n@single environment\n@multiple agents\n@agent model is used as a starting position")]
         NotSpecified,
 
         //Agents overlap eachother, environmental objects are common
-        [Tooltip("@agents are overlapping in the same environment(s)\nif no start, agent model is used as a starting position")]
+        [Tooltip("@agents are overlapping in the same environment(s)\n@if no starting model inside the environment, agent model is used as a starting position")]
         MoreAgentsPerEnvironment,
 
         //Agents train separately, environmental objects are personal for each agent
-        [Tooltip("@one agent per each environment found\nusually used for letting just 1 agent interact with the environment")]
+        [Tooltip("@one agent per each environment found\n@usually used to let just 1 agent interact with the environment")]
         OneAgentPerEnvironment,
     }
-    public enum GradientDescent
-    {
-        [Tooltip("@one iteration\n@gradients are averaged for an epoch\n@weights are updated after the epoch/iteration")]
-        FullBatch,
-        [Tooltip("@many iterations\n@gradients are averaged for an iteration\n@weights are updated after each iteration")]
-        MiniBatch,
-        [Tooltip("@weights are updated after each sample\n@DEPRECATED")]
-        Stochastic
-    }
+
     public enum BehaviorType
     {
         [Tooltip("Doesn't move")]
@@ -3398,7 +3384,7 @@ namespace MLFramework
     }
     public enum InitializationFunctionType
     {
-        [Tooltip("@value: [0, 1]")]
+        [Tooltip("@value: [-1, 1]")]
         RandomValue,
         [Tooltip("@Box-Muller method in Standard Normal Distribution")]
         StandardDistribution,
@@ -3429,9 +3415,7 @@ namespace MLFramework
         [Tooltip("@use data from the file below")]
         Learn,
     }
-    public enum ThreadingType
-    {
-        SingleThreaded,
-        MultiThreaded
-    }
+
+
+
 }
