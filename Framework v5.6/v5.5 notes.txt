@@ -1,6 +1,0 @@
-v5.5.3
-0) Adding MultiThreading batch processing
-1) Adding Momentum to the Gradient Descent
-2) Adding Regularization L2
-
-https://github.com/SebLague/Neural-Network-Experiments/blob/main/Assets/Scripts/Neural%20Network/NeuralNetwork.cs
