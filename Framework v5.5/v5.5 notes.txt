@@ -1,6 +1,0 @@
-v5.5.3
-
-2) Adding Momentum to the Gradient Descent
-4) Adding Regularization (optional)
-
-https://github.com/SebLague/Neural-Network-Experiments/blob/main/Assets/Scripts/Neural%20Network/NeuralNetwork.cs
