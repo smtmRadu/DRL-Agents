@@ -1,0 +1,2 @@
+1)RayPerceptionSensor
+2)Deactivate all camera scripts when using it for Trainer
