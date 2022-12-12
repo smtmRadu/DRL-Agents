@@ -2,9 +2,11 @@ using System;
 using Unity.Burst.CompilerServices;
 using Unity.VisualScripting;
 using UnityEngine;
-
+//ONLY FOR ML FRAMEWORK Version
+[RequireComponent(typeof(Agent))]
 public class RaySensor : MonoBehaviour
 {
+
     [HideInInspector] public float[] observations;
     [SerializeField, Tooltip("@scene world dimensions")] World world = World.World3D;
     [SerializeField, Tooltip("@LayerMask used when casting the rays")] LayerMask layerMask = ~0;
@@ -24,8 +26,12 @@ public class RaySensor : MonoBehaviour
     [SerializeField] Color rayColor = Color.green;
     [SerializeField] Color missRayColor = Color.red;
 
+    Agent agent;
+    bool simStarted = false;
     private void Start()
     {
+        simStarted = true;
+        agent = GetComponent<Agent>();
         CastRays();
     }
     private void Update()
@@ -34,6 +40,9 @@ public class RaySensor : MonoBehaviour
     }
     private void OnDrawGizmos()
     {
+        if (simStarted && agent.behavior == MLFramework.BehaviorType.Static)
+            return;
+
         float oneAngle = rays == 1 ? 0 : (float)-fieldOfView / (rays - 1f);
 
         Vector3 startAngle;
@@ -99,6 +108,8 @@ public class RaySensor : MonoBehaviour
     }
     private void CastRays()
     {
+        if (agent.behavior == MLFramework.BehaviorType.Static)
+            return;
 
         observations = new float[rays];
         float oneAngle = rays == 1 ? 0 : (float)-fieldOfView / (rays - 1f);
