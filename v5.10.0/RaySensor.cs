@@ -2,7 +2,7 @@ using System;
 using Unity.Burst.CompilerServices;
 using Unity.VisualScripting;
 using UnityEngine;
-//ONLY FOR ML FRAMEWORK Version
+
 [RequireComponent(typeof(Agent))]
 public class RaySensor : MonoBehaviour
 {
@@ -28,9 +28,12 @@ public class RaySensor : MonoBehaviour
 
     Agent agent;
     bool simStarted = false;
-    private void Start()
+    private void Awake()
     {
         simStarted = true;
+    }
+    private void Start()
+    {  
         agent = GetComponent<Agent>();
         CastRays();
     }
@@ -137,7 +140,7 @@ public class RaySensor : MonoBehaviour
                 rayDirection = Quaternion.Euler(currentAngle, 0, 0) * startAngle;
 
             if (world == World.World3D)
-            {
+            {              
                 RaycastHit hit;
                 bool isHit = Physics.SphereCast(castOrigin, sphereCastRadius, rayDirection, out hit, distance, layerMask);
                 if (isHit == true)
@@ -150,7 +153,7 @@ public class RaySensor : MonoBehaviour
                 }
             }
             else
-            {
+            {             
                 RaycastHit2D hit2D = Physics2D.CircleCast(castOrigin, sphereCastRadius, rayDirection, distance, layerMask);
                 if (hit2D == true)
                 {
@@ -173,7 +176,7 @@ public class RaySensor : MonoBehaviour
     {
         World3D,
         World2DforXY,
-        World2DforZY,
+        World2DforZY,       
     }
     //patch
     //v 1.1 updated and works properly
