@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.Versioning;
 using UnityEngine;
 
-[DisallowMultipleComponent, AddComponentMenu("ML Framework/Heuristics")]
+[DisallowMultipleComponent, AddComponentMenu("ML Framework/Agent Heuristics")]
 public class AgentHeuristics : MonoBehaviour
 {
     public HeuristicModule module = HeuristicModule.Collect;

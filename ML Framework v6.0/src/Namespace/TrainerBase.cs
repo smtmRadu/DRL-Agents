@@ -11,15 +11,14 @@ namespace MLFramework
 {
     public class TrainerBase : UnityEngine.MonoBehaviour
     {
-        [Header("===== Models =====")]
+        [Header("@Models")]
         [Tooltip("Agent model gameObject used as the ai")] public GameObject agentModel;
         [Tooltip("@network model used to start the training with")] public TextAsset networkModel;
-        [Space(20)]
-        [Tooltip("@resets the dynamic environmental object's positions")] public TrainingType interactionType = TrainingType.NotSpecified;
         [Tooltip("The model used updates in the first next generation\n@tip: use a copy of the brain")] public bool resetBrainModelFitness = true;
         [Tooltip("@save networks of best Ai's before moving to the next generation.\n@number of saves = cbrt(Team Size).\n@folder: /Saves/.\n@last file saved is the best AI")] public bool saveBrains = false;
 
-        [Space, Header("===== Training Properties =====")]
+        [Space, Header("@Settings")]
+        [Tooltip("@resets the dynamic environmental object's positions")] public TrainingType interactionType = TrainingType.NotSpecified;
         [Range(3, 500), Tooltip("@number of clones used\n@more clones means faster reinforcement but slow performance")] public int teamSize = 10;//IT cannot be 1 or 2, otherwise strategies will not work (if there are not 3, strategy 2 causes trouble)
         [Range(1, 10), Tooltip("Episodes needed to run until passing to the next Generation\n@TIP: divide the reward given by this number")] public int episodesPerGeneration = 1;
         [Range(1, 1000), Tooltip("Total Episodes in this Training Session")] public int maxEpisodes = 1000; private int currentEpisode = 1;
