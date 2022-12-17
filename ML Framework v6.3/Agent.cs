@@ -1,7 +1,7 @@
 using UnityEngine;
 using MLFramework;
 
-[RequireComponent(typeof(AgentHeuristics)), DisallowMultipleComponent, AddComponentMenu("ML Framework/Agent")]
+[RequireComponent(typeof(Heuristics)), DisallowMultipleComponent, AddComponentMenu("ML Framework/Agent")]
 public class Agent : AgentBase
 {
     [Header("@Stats")]
