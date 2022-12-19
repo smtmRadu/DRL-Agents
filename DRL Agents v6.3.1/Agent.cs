@@ -1,5 +1,5 @@
 using UnityEngine;
-using MLFramework;
+using DRLAgents;
 
 [RequireComponent(typeof(Heuristics)), DisallowMultipleComponent, AddComponentMenu("DLR Agents/Agent")]
 public class Agent : AgentBase

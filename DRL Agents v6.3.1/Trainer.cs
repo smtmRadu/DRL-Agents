@@ -1,5 +1,5 @@
 using UnityEngine;
-using MLFramework;
+using DRLAgents;
 
 [DisallowMultipleComponent, AddComponentMenu("DLR Agents/Trainer")]
 public class Trainer : TrainerBase
